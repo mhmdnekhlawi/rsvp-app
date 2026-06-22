@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RSVP</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f9f9f7;
+    --surface: #ffffff;
+    --border: #e5e5e2;
+    --text: #1a1a18;
+    --muted: #7a7a75;
+    --green-bg: #edf7ed;
+    --green-text: #1e6b1e;
+    --green-border: #b7ddb7;
+    --red-bg: #fdf0f0;
+    --red-text: #9b1c1c;
+    --red-border: #f0b8b8;
+    --yellow-bg: #fdfbee;
+    --yellow-text: #7a6200;
+    --accent: #1a1a2e;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── LAYOUT ── */
+  .page { display: none; }
+  .page.active { display: block; }
+  .container { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem; }
+  .narrow { max-width: 480px; margin: 0 auto; padding: 2rem 1.25rem; }
+
+  /* ── TYPE ── */
+  h1 { font-size: 22px; font-weight: 600; }
+  h2 { font-size: 17px; font-weight: 600; margin-bottom: 1rem; }
+  p  { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* ── INPUTS ── */
+  input, select {
+    width: 100%; height: 40px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); font-size: 14px; color: var(--text);
+    outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: #aaa; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 40px; padding: 0 18px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text);
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #2d2d48; }
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+  .btn-icon { height: 32px; width: 32px; padding: 0; border-radius: var(--radius-sm); }
+  .btn-success { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); width: 100%; height: 48px; font-size: 15px; }
+  .btn-danger  { background: var(--red-bg);   color: var(--red-text);   border-color: var(--red-border);   width: 100%; height: 48px; font-size: 15px; }
+  .btn-success:hover { background: #d4edda; }
+  .btn-danger:hover  { background: #f8d7d7; }
+
+  /* ── CARD ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+
+  /* ── BADGE ── */
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .badge-pending  { background: #f3f3f0; color: var(--muted); }
+  .badge-yes  { background: var(--green-bg); color: var(--green-text); }
+  .badge-no   { background: var(--red-bg);   color: var(--red-text); }
+
+  /* ── STAT ROW ── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .stat .n { font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat .n.g { color: var(--green-text); }
+  .stat .n.r { color: var(--red-text); }
+
+  /* ── TABLE ── */
+  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); background: var(--bg); }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--muted); background: var(--bg); padding: 3px 7px; border-radius: 4px; }
+
+  /* ── ADD ROW ── */
+  .add-row { display: grid; grid-template-columns: 1fr 90px auto; gap: 8px; align-items: end; margin-bottom: 1rem; }
+
+  /* ── HEADER ── */
+  .host-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .host-header h1 { margin-bottom: 4px; }
+
+  /* ── SEATS CONTROL ── */
+  .seats-row { display: flex; align-items: center; gap: 14px; margin: 1rem 0 1.5rem; }
+  .seat-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+  .seat-btn:hover { background: var(--bg); }
+  .seat-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .seat-num { font-size: 32px; font-weight: 600; min-width: 40px; text-align: center; }
+  .seat-label { font-size: 13px; color: var(--muted); }
+
+  /* ── RSVP PAGE ── */
+  .rsvp-hero { text-align: center; padding: 2.5rem 0 1.5rem; }
+  .rsvp-hero .event-name { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .rsvp-hero .event-date { font-size: 15px; color: var(--muted); }
+  .greeting { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .rsvp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.5rem; }
+
+  /* ── LOGIN ── */
+  .login-wrap { max-width: 360px; margin: 5rem auto; padding: 0 1.25rem; }
+  .login-wrap h1 { margin-bottom: 0.5rem; }
+  .login-wrap p { margin-bottom: 1.5rem; }
+
+  /* ── CONFIRMED ── */
+  .confirmed-wrap { text-align: center; padding: 4rem 1rem; }
+  .confirmed-wrap .icon { font-size: 52px; margin-bottom: 1rem; }
+  .confirmed-wrap h1 { margin-bottom: 8px; }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  /* ── SPINNER ── */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #ccc; border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-page { display: flex; align-items: center; justify-content: center; height: 60vh; }
+
+  /* ── LINK ROW ── */
+  .link-row { display: flex; align-items: center; gap: 6px; }
+
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .add-row { grid-template-columns: 1fr 70px auto; }
+    table th:nth-child(4), table td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="page-loading" class="page active loading-page">
+  <div class="spinner"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="page-login" class="page">
+  <div class="login-wrap">
+    <h1>Host login</h1>
+    <p>Enter your host password to manage the guest list.</p>
+    <div style="margin-bottom:12px">
+      <label>Password</label>
+      <input type="password" id="login-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign in</button>
+    <p id="login-err" style="color:var(--red-text);margin-top:10px;display:none">Wrong password.</p>
+  </div>
+</div>
+
+<!-- HOST DASHBOARD -->
+<div id="page-host" class="page">
+  <div class="container">
+    <div class="host-header">
+      <div>
+        <h1 id="dsh-event-name">My Event</h1>
+        <p id="dsh-event-date" style="margin-top:3px;font-size:13px"></p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="openSettings()">⚙ Settings</button>
+        <button class="btn btn-sm" onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="stats" id="stats-row"></div>
+
+    <div class="add-row">
+      <div><label>Guest name</label><input type="text" id="inp-name" placeholder="e.g. Sara Ali" onkeydown="if(event.key==='Enter')addGuest()" /></div>
+      <div><label>Max seats</label><input type="number" id="inp-seats" value="2" min="1" max="20" /></div>
+      <div style="padding-top:17px"><button class="btn btn-primary" onclick="addGuest()">+ Add</button></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Guest</th>
+            <th>Status</th>
+            <th>Seats</th>
+            <th>RSVP link</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="guest-tbody"></tbody>
+      </table>
+      <div id="empty-state" style="text-align:center;padding:2rem;font-size:13px;color:var(--muted)">
+        No guests yet — add your first guest above.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:none;align-items:center;justify-content:center">
+  <div class="card" style="width:380px;max-width:90vw">
+    <h2>Event settings</h2>
+    <div style="margin-bottom:12px"><label>Event name</label><input type="text" id="s-name" /></div>
+    <div style="margin-bottom:12px"><label>Date / location</label><input type="text" id="s-date" placeholder="e.g. July 12, 2026 · Dubai" /></div>
+    <div style="margin-bottom:20px"><label>Host password</label><input type="password" id="s-pw" /></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-sm" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-sm btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUEST RSVP PAGE -->
+<div id="page-rsvp" class="page">
+  <div class="narrow">
+    <div class="rsvp-hero">
+      <div class="event-name" id="rsvp-event-name">My Event</div>
+      <div class="event-date" id="rsvp-event-date"></div>
+    </div>
+    <div class="card">
+      <div class="greeting" id="rsvp-greeting"></div>
+      <p style="margin-top:4px">You're invited! Let us know if you can make it.</p>
+      <div style="margin-top:1.25rem">
+        <label>How many people are coming?</label>
+        <div class="seats-row">
+          <button class="seat-btn" id="btn-minus" onclick="changeSeat(-1)">−</button>
+          <div>
+            <div class="seat-num" id="seat-num">1</div>
+            <div class="seat-label" id="seat-max-label">of 2 max</div>
+          </div>
+          <button class="seat-btn" id="btn-plus" onclick="changeSeat(1)">+</button>
+        </div>
+      </div>
+      <div class="rsvp-actions">
+        <button class="btn-success btn" onclick="submitRsvp(true)">✓ I'll be there</button>
+        <button class="btn-danger btn"  onclick="submitRsvp(false)">✗ Can't make it</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMED PAGE -->
+<div id="page-confirmed" class="page">
+  <div class="confirmed-wrap">
+    <div class="icon" id="conf-icon">🎉</div>
+    <h1 id="conf-title">See you there!</h1>
+    <p id="conf-sub" style="margin-top:8px;font-size:15px"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://vlimnmitchnpftjznfli.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsaW1ubWl0Y2hucGZ0anpuZmxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODY0MTYsImV4cCI6MjA5NzY2MjQxNn0.vF4-SJBSwAe30YG2v-Ny65KjDH4TA5S-QIhDhMq5AM8';
+const H = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+let eventConfig = {};
+let guests = [];
+let currentGuest = null;
+let currentSeat = 1;
+
+/* ── UTILS ── */
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function show(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+
+/* ── SUPABASE ── */
+async function sb(method, path, body) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { method, headers: H, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  if (method === 'GET') return res.json();
+  return null;
+}
+
+/* ── BOOT ── */
+async function boot() {
+  const params = new URLSearchParams(location.search);
+  const token = params.get('id');
+  if (token) { await loadGuestRsvp(token); return; }
+  if (sessionStorage.getItem('host_auth') === 'yes') { await loadHost(); return; }
+  show('page-login');
+}
+
+/* ── AUTH ── */
+async function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  const cfg = await sb('GET', 'event_config?id=eq.1&select=host_password');
+  if (!cfg || !cfg.length) { return; }
+  if (pw !== cfg[0].host_password) { document.getElementById('login-err').style.display = 'block'; return; }
+  sessionStorage.setItem('host_auth', 'yes');
+  await loadHost();
+}
+function doLogout() { sessionStorage.removeItem('host_auth'); show('page-login'); }
+
+/* ── HOST DASHBOARD ── */
+async function loadHost() {
+  show('page-host');
+  const [cfg, gs] = await Promise.all([
+    sb('GET', 'event_config?id=eq.1'),
+    sb('GET', 'guests?order=created_at.asc')
+  ]);
+  eventConfig = cfg[0];
+  guests = gs;
+  document.getElementById('dsh-event-name').textContent = eventConfig.event_name;
+  document.getElementById('dsh-event-date').textContent = eventConfig.event_date || '';
+  renderGuests();
+}
+
+function renderGuests() {
+  const tbody = document.getElementById('guest-tbody');
+  const empty = document.getElementById('empty-state');
+  empty.style.display = guests.length ? 'none' : 'block';
+  const origin = location.origin + location.pathname;
+  tbody.innerHTML = guests.map(g => {
+    const badge = g.rsvp === true ? '<span class="badge badge-yes">Confirmed</span>' : g.rsvp === false ? '<span class="badge badge-no">Declined</span>' : '<span class="badge badge-pending">Pending</span>';
+    const seats = g.rsvp === true ? g.seats_confirmed : '—';
+    const link = `${origin}?id=${g.token}`;
+    return `<tr>
+      <td style="font-weight:500">${g.name}</td>
+      <td>${badge}</td>
+      <td>${seats}</td>
+      <td><div class="link-row"><span class="mono">${g.token}</span><button class="btn btn-icon btn-sm" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
+      <td><button class="btn btn-sm" style="color:var(--red-text);border-color:var(--red-border)" onclick="removeGuest('${g.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+  renderStats();
+}
+
+function renderStats() {
+  const total = guests.length;
+  const confirmed = guests.filter(g => g.rsvp === true).length;
+  const declined = guests.filter(g => g.rsvp === false).length;
+  const seats = guests.filter(g => g.rsvp === true).reduce((a, g) => a + (g.seats_confirmed || 0), 0);
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Invited</div></div>
+    <div class="stat"><div class="n g">${confirmed}</div><div class="l">Confirmed</div></div>
+    <div class="stat"><div class="n r">${declined}</div><div class="l">Declined</div></div>
+    <div class="stat"><div class="n">${seats}</div><div class="l">Total seats</div></div>
+  `;
+}
+
+async function addGuest() {
+  const name = document.getElementById('inp-name').value.trim();
+  const max = parseInt(document.getElementById('inp-seats').value) || 2;
+  if (!name) { toast('Enter a guest name'); return; }
+  const token = uid();
+  await sb('POST', 'guests', { name, max_seats: max, token, rsvp: null, seats_confirmed: null });
+  document.getElementById('inp-name').value = '';
+  toast('Guest added ✓');
+  guests = await sb('GET', 'guests?order=created_at.asc');
+  renderGuests();
+}
+
+async function removeGuest(id) {
+  await sb('DELETE', `guests?id=eq.${id}`);
+  guests = guests.filter(g => g.id !== id);
+  renderGuests();
+  toast('Guest removed');
+}
+
+function copyLink(link) {
+  navigator.clipboard.writeText(link).then(() => toast('Link copied!')).catch(() => {
+    prompt('Copy this link:', link);
+  });
+}
+
+/* ── SETTINGS ── */
+function openSettings() {
+  document.getElementById('s-name').value = eventConfig.event_name;
+  document.getElementById('s-date').value = eventConfig.event_date || '';
+  document.getElementById('s-pw').value = eventConfig.host_password;
+  document.getElementById('settings-modal').style.display = 'flex';
+}
+function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+async function saveSettings() {
+  const name = document.getElementById('s-name').value.trim();
+  const date = document.getElementById('s-date').value.trim();
+  const pw   = document.getElementById('s-pw').value.trim();
+  if (!name || !pw) { toast('Name and password are required'); return; }
+  await sb('PATCH', 'event_config?id=eq.1', { event_name: name, event_date: date, host_password: pw });
+  eventConfig = { ...eventConfig, event_name: name, event_date: date, host_password: pw };
+  document.getElementById('dsh-event-name').textContent = name;
+  document.getElementById('dsh-event-date').textContent = date;
+  closeSettings();
+  toast('Settings saved ✓');
+}
+
+/* ── GUEST RSVP ── */
+async function loadGuestRsvp(token) {
+  const [gRes, cfgRes] = await Promise.all([
+    sb('GET', `guests?token=eq.${token}`),
+    sb('GET', 'event_config?id=eq.1')
+  ]);
+  if (!gRes || !gRes.length) { show('page-confirmed'); document.getElementById('conf-icon').textContent = '🔗'; document.getElementById('conf-title').textContent = 'Link not found'; document.getElementById('conf-sub').textContent = 'This invite link is invalid.'; return; }
+  currentGuest = gRes[0];
+  eventConfig = cfgRes[0];
+
+  if (currentGuest.rsvp !== null) {
+    showConfirmed(currentGuest.rsvp, currentGuest.seats_confirmed);
+    return;
+  }
+
+  currentSeat = 1;
+  document.getElementById('rsvp-event-name').textContent = eventConfig.event_name;
+  document.getElementById('rsvp-event-date').textContent = eventConfig.event_date || '';
+  document.getElementById('rsvp-greeting').textContent = `Hi ${currentGuest.name} 👋`;
+  document.getElementById('seat-max-label').textContent = `of ${currentGuest.max_seats} max`;
+  updateSeatUI();
+  show('page-rsvp');
+}
+
+function changeSeat(d) {
+  currentSeat = Math.max(1, Math.min(currentGuest.max_seats, currentSeat + d));
+  updateSeatUI();
+}
+function updateSeatUI() {
+  document.getElementById('seat-num').textContent = currentSeat;
+  document.getElementById('btn-minus').disabled = currentSeat <= 1;
+  document.getElementById('btn-plus').disabled  = currentSeat >= currentGuest.max_seats;
+}
+
+async function submitRsvp(coming) {
+  await sb('PATCH', `guests?id=eq.${currentGuest.id}`, { rsvp: coming, seats_confirmed: coming ? currentSeat : 0 });
+  showConfirmed(coming, currentSeat);
+}
+
+function showConfirmed(coming, seats) {
+  if (coming) {
+    document.getElementById('conf-icon').textContent = '🎉';
+    document.getElementById('conf-title').textContent = `See you there, ${currentGuest.name}!`;
+    document.getElementById('conf-sub').textContent = `You've confirmed ${seats} seat${seats > 1 ? 's' : ''} for ${eventConfig.event_name}.`;
+  } else {
+    document.getElementById('conf-icon').textContent = '💙';
+    document.getElementById('conf-title').textContent = `Thanks for letting us know`;
+    document.getElementById('conf-sub').textContent = `Sorry you can't make it, ${currentGuest.name}. We'll miss you!`;
+  }
+  show('page-confirmed');
+}
+
+boot();
+</script>
+</body>
+</html>

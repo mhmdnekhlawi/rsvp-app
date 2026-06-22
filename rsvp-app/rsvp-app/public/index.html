@@ -3,449 +3,744 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RSVP</title>
+<title>Mohamad &amp; Marya — RSVP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #f9f9f7;
-    --surface: #ffffff;
-    --border: #e5e5e2;
-    --text: #1a1a18;
-    --muted: #7a7a75;
-    --green-bg: #edf7ed;
-    --green-text: #1e6b1e;
-    --green-border: #b7ddb7;
-    --red-bg: #fdf0f0;
-    --red-text: #9b1c1c;a
-    --red-border: #f0b8b8;
-    --yellow-bg: #fdfbee;
-    --yellow-text: #7a6200;
-    --accent: #1a1a2e;
-    --radius: 10px;
-    --radius-sm: 6px;
+  :root{
+    --fuchsia:#E11584;
+    --fuchsia-deep:#B30C66;
+    --blush:#FBD7E6;
+    --peach:#FCE3D2;
+    --cream:#FFF9F5;
+    --ink:#3D1226;
+    --muted:#8A6377;
+    --line:#F0D9E4;
+    --ok:#1F9D6B;
+    --ok-soft:#E4F5EE;
+    --no:#C2536B;
+    --no-soft:#FBE7EC;
+    --shadow:0 18px 50px -22px rgba(177,12,102,.45);
   }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-  /* ── LAYOUT ── */
-  .page { display: none; }
-  .page.active { display: block; }
-  .container { max-width: 760px; margin: 0 auto; padding: 2rem 1.25rem; }
-  .narrow { max-width: 480px; margin: 0 auto; padding: 2rem 1.25rem; }
-
-  /* ── TYPE ── */
-  h1 { font-size: 22px; font-weight: 600; }
-  h2 { font-size: 17px; font-weight: 600; margin-bottom: 1rem; }
-  p  { font-size: 14px; color: var(--muted); line-height: 1.6; }
-
-  /* ── INPUTS ── */
-  input, select {
-    width: 100%; height: 40px; padding: 0 12px;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    background: var(--surface); font-size: 14px; color: var(--text);
-    outline: none; transition: border-color .15s;
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--cream);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
   }
-  input:focus, select:focus { border-color: #aaa; }
-  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  .page{display:none}
+  .page.active{display:block}
 
-  /* ── BUTTONS ── */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 40px; padding: 0 18px; border-radius: var(--radius-sm);
-    border: 1px solid var(--border); background: var(--surface);
-    font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text);
-    transition: background .15s, border-color .15s;
+  /* ---------- Loading ---------- */
+  #page-loading.active{
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;background:var(--cream);flex-direction:column;gap:18px;
   }
-  .btn:hover { background: var(--bg); }
-  .btn:active { transform: scale(0.98); }
-  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn-primary:hover { background: #2d2d48; }
-  .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
-  .btn-icon { height: 32px; width: 32px; padding: 0; border-radius: var(--radius-sm); }
-  .btn-success { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); width: 100%; height: 48px; font-size: 15px; }
-  .btn-danger  { background: var(--red-bg);   color: var(--red-text);   border-color: var(--red-border);   width: 100%; height: 48px; font-size: 15px; }
-  .btn-success:hover { background: #d4edda; }
-  .btn-danger:hover  { background: #f8d7d7; }
+  .spinner{
+    width:46px;height:46px;border-radius:50%;
+    border:4px solid var(--blush);border-top-color:var(--fuchsia);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-label{color:var(--muted);font-size:14px;letter-spacing:.04em}
 
-  /* ── CARD ── */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  /* ---------- Guest view ---------- */
+  .guest-wrap{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px 56px}
+  .card{
+    width:100%;max-width:480px;background:#fff;border-radius:28px;overflow:hidden;
+    box-shadow:var(--shadow);border:1px solid var(--line);
+  }
+  .hero{
+    position:relative;background:var(--fuchsia);
+    background-image:linear-gradient(160deg,#EC3897 0%,var(--fuchsia) 48%,var(--fuchsia-deep) 100%);
+    color:#fff;padding:40px 30px 56px;text-align:center;
+  }
+  .hero .eyebrow{
+    font-size:12px;letter-spacing:.32em;text-transform:uppercase;opacity:.9;margin:0 0 16px;font-weight:600;
+  }
+  .hero .names{
+    font-family:'Playfair Display',serif;font-weight:600;font-size:clamp(34px,9vw,46px);
+    line-height:1.05;margin:0;text-transform:lowercase;letter-spacing:-.01em;
+  }
+  .hero .amp{font-style:italic;font-weight:500;opacity:.92;display:block;font-size:.62em;margin:6px 0}
+  .hero .meta{margin:18px 0 0;font-size:14px;letter-spacing:.04em;opacity:.95}
+  .hero .occasion{margin:14px 0 0;font-family:'Playfair Display',serif;font-style:italic;font-size:17px;font-weight:500;opacity:.96}
+  .wave{position:absolute;left:0;right:0;bottom:-1px;width:100%;display:block}
 
-  /* ── BADGE ── */
-  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
-  .badge-pending  { background: #f3f3f0; color: var(--muted); }
-  .badge-yes  { background: var(--green-bg); color: var(--green-text); }
-  .badge-no   { background: var(--red-bg);   color: var(--red-text); }
+  .body{padding:30px 30px 34px}
+  .greet{font-family:'Playfair Display',serif;font-size:24px;margin:0 0 6px;font-weight:500}
+  .sub{color:var(--muted);font-size:14.5px;margin:0 0 24px}
 
-  /* ── STAT ROW ── */
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
-  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
-  .stat .n { font-size: 26px; font-weight: 600; line-height: 1; }
-  .stat .l { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .stat .n.g { color: var(--green-text); }
-  .stat .n.r { color: var(--red-text); }
+  .q{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink);margin:0 0 12px;text-transform:uppercase;opacity:.75}
+  .seats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+  .seat-pill{
+    min-width:54px;flex:0 0 auto;padding:14px 16px;border-radius:16px;border:1.5px solid var(--line);
+    background:#fff;font-weight:600;font-size:16px;color:var(--ink);cursor:pointer;
+    transition:transform .12s ease,border-color .12s ease,background .12s ease;
+    font-family:inherit;
+  }
+  .seat-pill .n{font-size:20px;display:block;line-height:1.1}
+  .seat-pill .l{font-size:10.5px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+  .seat-pill:hover{border-color:var(--fuchsia)}
+  .seat-pill.sel{background:var(--fuchsia);border-color:var(--fuchsia);color:#fff;transform:translateY(-2px)}
+  .seat-pill.sel .l{color:rgba(255,255,255,.85)}
 
-  /* ── TABLE ── */
-  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); background: var(--bg); }
-  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--muted); background: var(--bg); padding: 3px 7px; border-radius: 4px; }
+  .decline{
+    margin-top:14px;width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--line);
+    background:#fff;color:var(--muted);font-weight:600;font-size:14.5px;cursor:pointer;font-family:inherit;
+    transition:.12s ease;
+  }
+  .decline:hover{border-color:var(--no);color:var(--no)}
+  .decline.sel{background:var(--no-soft);border-color:var(--no);color:var(--no)}
 
-  /* ── ADD ROW ── */
-  .add-row { display: grid; grid-template-columns: 1fr 90px auto; gap: 8px; align-items: end; margin-bottom: 1rem; }
+  .confirm{
+    margin-top:24px;width:100%;padding:16px;border-radius:16px;border:none;
+    background:var(--ink);color:#fff;font-weight:700;font-size:16px;cursor:pointer;font-family:inherit;
+    transition:.15s ease;letter-spacing:.01em;
+  }
+  .confirm:hover{background:#551a37}
+  .confirm:disabled{opacity:.4;cursor:not-allowed}
 
-  /* ── HEADER ── */
-  .host-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
-  .host-header h1 { margin-bottom: 4px; }
+  .thanks{text-align:center;padding:8px 4px}
+  .thanks .check{
+    width:66px;height:66px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;
+    background:var(--ok-soft);color:var(--ok);font-size:32px;
+  }
+  .thanks.declined .check{background:var(--no-soft);color:var(--no)}
+  .thanks h3{font-family:'Playfair Display',serif;font-size:24px;margin:0 0 8px;font-weight:500}
+  .thanks p{color:var(--muted);margin:0 0 20px;font-size:15px}
+  .edit-link{background:none;border:none;color:var(--fuchsia);font-weight:600;cursor:pointer;font-size:14px;font-family:inherit;text-decoration:underline}
 
-  /* ── SEATS CONTROL ── */
-  .seats-row { display: flex; align-items: center; gap: 14px; margin: 1rem 0 1.5rem; }
-  .seat-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s; }
-  .seat-btn:hover { background: var(--bg); }
-  .seat-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .seat-num { font-size: 32px; font-weight: 600; min-width: 40px; text-align: center; }
-  .seat-label { font-size: 13px; color: var(--muted); }
+  .notfound{text-align:center;padding:50px 30px}
+  .notfound h3{font-family:'Playfair Display',serif;font-size:26px;margin:0 0 10px}
+  .notfound p{color:var(--muted);margin:0}
 
-  /* ── RSVP PAGE ── */
-  .rsvp-hero { text-align: center; padding: 2.5rem 0 1.5rem; }
-  .rsvp-hero .event-name { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
-  .rsvp-hero .event-date { font-size: 15px; color: var(--muted); }
-  .greeting { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-  .rsvp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.5rem; }
+  /* ---------- Host login ---------- */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{width:100%;max-width:380px;background:#fff;border-radius:24px;padding:36px 30px;box-shadow:var(--shadow);border:1px solid var(--line);text-align:center}
+  .login-card .lock{font-size:34px;margin-bottom:10px}
+  .login-card h2{font-family:'Playfair Display',serif;font-weight:500;margin:0 0 4px;font-size:24px}
+  .login-card p{color:var(--muted);font-size:14px;margin:0 0 22px}
 
-  /* ── LOGIN ── */
-  .login-wrap { max-width: 360px; margin: 5rem auto; padding: 0 1.25rem; }
-  .login-wrap h1 { margin-bottom: 0.5rem; }
-  .login-wrap p { margin-bottom: 1.5rem; }
+  /* ---------- Host dashboard ---------- */
+  .dash{max-width:1040px;margin:0 auto;padding:22px 18px 60px}
+  .dash-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+  .dash-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:500;margin:0;display:flex;align-items:center;gap:10px}
+  .dash-title .dot{width:10px;height:10px;border-radius:50%;background:var(--fuchsia)}
+  .dash-actions{display:flex;gap:8px}
 
-  /* ── CONFIRMED ── */
-  .confirmed-wrap { text-align: center; padding: 4rem 1rem; }
-  .confirmed-wrap .icon { font-size: 52px; margin-bottom: 1rem; }
-  .confirmed-wrap h1 { margin-bottom: 8px; }
+  .stats-split{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .split-chip{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+  .split-chip .badge{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .split-chip.bride .badge{background:var(--blush)}
+  .split-chip.groom .badge{background:var(--peach)}
+  .split-chip .k{font-size:12px;color:var(--muted);letter-spacing:.03em}
+  .split-chip .v{font-size:18px;font-weight:700}
 
-  /* ── TOAST ── */
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 999; white-space: nowrap; }
-  .toast.show { opacity: 1; }
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px}
+  .stat .v{font-size:26px;font-weight:700;font-family:'Playfair Display',serif;line-height:1}
+  .stat .k{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.02em}
+  .stat.attending .v{color:var(--ok)}
+  .stat.declined .v{color:var(--no)}
 
-  /* ── SPINNER ── */
-  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #ccc; border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-page { display: flex; align-items: center; justify-content: center; height: 60vh; }
+  .panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:18px}
+  .panel h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
 
-  /* ── LINK ROW ── */
-  .link-row { display: flex; align-items: center; gap: 6px; }
+  .add-row{display:grid;grid-template-columns:1fr 110px 150px auto;gap:10px;align-items:end}
+  .field label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px;font-weight:600}
+  input,select{
+    width:100%;padding:12px 13px;border-radius:12px;border:1.5px solid var(--line);font-size:15px;
+    font-family:inherit;color:var(--ink);background:#fff;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--fuchsia)}
 
-  @media (max-width: 560px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .add-row { grid-template-columns: 1fr 70px auto; }
-    table th:nth-child(4), table td:nth-child(4) { display: none; }
+  .btn{padding:12px 18px;border-radius:12px;border:none;font-weight:600;font-size:14.5px;cursor:pointer;font-family:inherit;transition:.13s ease;white-space:nowrap}
+  .btn-primary{background:var(--fuchsia);color:#fff}
+  .btn-primary:hover{background:var(--fuchsia-deep)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--fuchsia);color:var(--fuchsia)}
+  .btn-sm{padding:8px 12px;font-size:13px}
+
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:9px 16px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--muted);font-weight:600;font-size:13.5px;cursor:pointer;font-family:inherit;transition:.12s ease}
+  .tab:hover{border-color:var(--fuchsia)}
+  .tab.active{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:0 12px 10px;font-weight:700}
+  td{padding:13px 12px;border-top:1px solid var(--line);font-size:14.5px;vertical-align:middle}
+  .g-name{font-weight:600}
+  .side-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.02em}
+  .side-badge.bride{background:var(--blush);color:#a01861}
+  .side-badge.groom{background:var(--peach);color:#9a5418}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}
+  .status .d{width:8px;height:8px;border-radius:50%}
+  .status.attending{color:var(--ok)} .status.attending .d{background:var(--ok)}
+  .status.declined{color:var(--no)} .status.declined .d{background:var(--no)}
+  .status.pending{color:var(--muted)} .status.pending .d{background:#cdb6c4}
+
+  .link-cell{display:flex;align-items:center;gap:8px;max-width:240px}
+  .link-cell code{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--cream);padding:5px 8px;border-radius:7px;flex:1;min-width:0}
+  .icon-btn{background:#fff;border:1.5px solid var(--line);border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:14px;color:var(--muted);flex:0 0 auto;transition:.12s ease}
+  .icon-btn:hover{border-color:var(--fuchsia);color:var(--fuchsia)}
+  .del-btn:hover{border-color:var(--no);color:var(--no)}
+  .copy-mobile{display:none}
+
+  /* ---------- Guest details after RSVP ---------- */
+  .note{margin:16px auto 8px;max-width:340px;font-size:13.5px;color:var(--muted);background:var(--cream);border:1px solid var(--line);border-radius:14px;padding:12px 14px;line-height:1.5;text-align:center}
+  .detail-img{height:150px;border-radius:18px;background-size:cover;background-position:center;margin-top:22px;border:1px solid var(--line)}
+  .detail-deco{height:96px;border-radius:18px;margin-top:22px;background:linear-gradient(135deg,var(--blush),var(--peach));display:flex;align-items:center;justify-content:center;color:var(--fuchsia);font-size:30px}
+  .details{margin-top:20px;border-top:1px solid var(--line);padding-top:18px;text-align:left}
+  .details-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:500;margin:0 0 8px;text-align:center}
+  .detail-row{display:flex;gap:13px;align-items:flex-start;padding:12px 0}
+  .detail-row + .detail-row{border-top:1px solid var(--line)}
+  .dicon{font-size:18px;flex:0 0 auto;width:24px;text-align:center;line-height:1.4}
+  .dlabel{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:3px}
+  .dval{font-size:15px;font-weight:600;color:var(--ink)}
+  .dsub{font-size:13.5px;font-weight:400;color:var(--muted);margin-top:2px}
+  .maps-link{display:inline-block;margin-top:7px;font-size:13px;font-weight:600;color:var(--fuchsia);text-decoration:none}
+  .maps-link:hover{text-decoration:underline}
+  .details-soon{color:var(--muted);font-size:14px;text-align:center;margin:18px 0 0;line-height:1.5}
+  .swatches{display:flex;gap:7px;margin-top:9px}
+  .swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.06);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  .empty{text-align:center;padding:34px;color:var(--muted)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s ease;z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- Settings modal ---------- */
+  .modal-bg{position:fixed;inset:0;background:rgba(61,18,38,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:40}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:22px;padding:28px;width:100%;max-width:420px;box-shadow:var(--shadow);max-height:88vh;overflow-y:auto}
+  .modal h3{font-family:'Playfair Display',serif;font-weight:500;font-size:22px;margin:0 0 18px}
+  .modal .field{margin-bottom:14px}
+  .modal .set-divider{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .modal-actions{display:flex;gap:10px;margin-top:8px}
+
+  @media(max-width:680px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .add-row{grid-template-columns:1fr 1fr;gap:10px}
+    .add-row .field.wide,.add-row .add-btn{grid-column:1 / -1}
+    th.col-link,td.col-link{display:none}
+    .copy-mobile{display:inline-flex;margin-top:8px}
   }
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="page-loading" class="page active loading-page">
+<!-- ============ LOADING ============ -->
+<div id="page-loading" class="page active">
   <div class="spinner"></div>
+  <div class="loading-label">Loading…</div>
 </div>
 
-<!-- LOGIN -->
+<!-- ============ GUEST RSVP ============ -->
+<div id="page-guest" class="page">
+  <div class="guest-wrap">
+    <div class="card">
+      <div class="hero">
+        <p class="eyebrow">You're invited to</p>
+        <h1 class="names"><span id="g-name1">mohamad</span><span class="amp">&amp;</span><span id="g-name2">marya</span><span class="poss">&rsquo;s</span></h1>
+        <p class="occasion" id="g-occasion">engagement celebration</p>
+        <p class="meta" id="g-meta">Cairo</p>
+        <svg class="wave" viewBox="0 0 480 28" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0,14 C40,28 80,0 120,14 C160,28 200,0 240,14 C280,28 320,0 360,14 C400,28 440,0 480,14 L480,28 L0,28 Z" fill="#ffffff"/>
+        </svg>
+      </div>
+      <div class="body" id="g-body"><!-- filled by JS --></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HOST LOGIN ============ -->
 <div id="page-login" class="page">
   <div class="login-wrap">
-    <h1>Host login</h1>
-    <p>Enter your host password to manage the guest list.</p>
-    <div style="margin-bottom:12px">
-      <label>Password</label>
-      <input type="password" id="login-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    <div class="login-card">
+      <div class="lock">🔒</div>
+      <h2>Host access</h2>
+      <p>Enter your password to manage the guest list.</p>
+      <div class="field"><input id="login-pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()">Open dashboard</button>
+      <p id="login-err" style="color:var(--no);font-size:13px;margin:12px 0 0;display:none">Wrong password — try again.</p>
     </div>
-    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign in</button>
-    <p id="login-err" style="color:var(--red-text);margin-top:10px;display:none">Wrong password.</p>
   </div>
 </div>
 
-<!-- HOST DASHBOARD -->
+<!-- ============ HOST DASHBOARD ============ -->
 <div id="page-host" class="page">
-  <div class="container">
-    <div class="host-header">
-      <div>
-        <h1 id="dsh-event-name">My Event</h1>
-        <p id="dsh-event-date" style="margin-top:3px;font-size:13px"></p>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" onclick="openSettings()">⚙ Settings</button>
-        <button class="btn btn-sm" onclick="doLogout()">Sign out</button>
+  <div class="dash">
+    <div class="dash-top">
+      <h1 class="dash-title"><span class="dot"></span><span id="dash-event">My Event</span></h1>
+      <div class="dash-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙ Settings</button>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Log out</button>
       </div>
     </div>
 
-    <div class="stats" id="stats-row"></div>
-
-    <div class="add-row">
-      <div><label>Guest name</label><input type="text" id="inp-name" placeholder="e.g. Sara Ali" onkeydown="if(event.key==='Enter')addGuest()" /></div>
-      <div><label>Max seats</label><input type="number" id="inp-seats" value="2" min="1" max="20" /></div>
-      <div style="padding-top:17px"><button class="btn btn-primary" onclick="addGuest()">+ Add</button></div>
+    <div class="stats-split">
+      <div class="split-chip bride"><div class="badge">💗</div><div><div class="k">Bride's side</div><div class="v" id="split-bride">0 guests</div></div></div>
+      <div class="split-chip groom"><div class="badge">🤵</div><div><div class="k">Groom's side</div><div class="v" id="split-groom">0 guests</div></div></div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Guest</th>
-            <th>Status</th>
-            <th>Seats</th>
-            <th>RSVP link</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="guest-tbody"></tbody>
-      </table>
-      <div id="empty-state" style="text-align:center;padding:2rem;font-size:13px;color:var(--muted)">
-        No guests yet — add your first guest above.
+    <div class="stats">
+      <div class="stat"><div class="v" id="st-total">0</div><div class="k">Guests invited</div></div>
+      <div class="stat"><div class="v" id="st-inv">0</div><div class="k">Seats invited</div></div>
+      <div class="stat attending"><div class="v" id="st-att">0</div><div class="k">Seats confirmed</div></div>
+      <div class="stat declined"><div class="v" id="st-dec">0</div><div class="k">Declined</div></div>
+      <div class="stat"><div class="v" id="st-pend">0</div><div class="k">Awaiting reply</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Add a guest</h3>
+      <div class="add-row">
+        <div class="field wide"><label>Name</label><input id="add-name" placeholder="e.g. Sara Khalil" onkeydown="if(event.key==='Enter')addGuest()"/></div>
+        <div class="field"><label>Max seats</label><input id="add-seats" type="number" min="1" max="20" value="2"/></div>
+        <div class="field"><label>Side</label><select id="add-side"><option value="bride">Bride's side</option><option value="groom">Groom's side</option></select></div>
+        <div class="add-btn"><button class="btn btn-primary" onclick="addGuest()">+ Add guest</button></div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" data-side="all" onclick="setFilter('all')">All</button>
+        <button class="tab" data-side="bride" onclick="setFilter('bride')">Bride's side</button>
+        <button class="tab" data-side="groom" onclick="setFilter('groom')">Groom's side</button>
+      </div>
+      <div id="table-wrap"></div>
     </div>
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
-<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:none;align-items:center;justify-content:center">
-  <div class="card" style="width:380px;max-width:90vw">
-    <h2>Event settings</h2>
-    <div style="margin-bottom:12px"><label>Event name</label><input type="text" id="s-name" /></div>
-    <div style="margin-bottom:12px"><label>Date / location</label><input type="text" id="s-date" placeholder="e.g. July 12, 2026 · Dubai" /></div>
-    <div style="margin-bottom:20px"><label>Host password</label><input type="password" id="s-pw" /></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-sm" onclick="closeSettings()">Cancel</button>
-      <button class="btn btn-sm btn-primary" onclick="saveSettings()">Save</button>
-    </div>
-  </div>
-</div>
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="modal-bg" id="settings-modal">
+  <div class="modal">
+    <h3>Event settings</h3>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Event name</label><input id="set-name"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Occasion (shown under the names)</label><input id="set-occasion" placeholder="e.g. engagement celebration"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Date / details (shown to guests)</label><input id="set-date" placeholder="e.g. 12 September 2026"/></div>
 
-<!-- GUEST RSVP PAGE -->
-<div id="page-rsvp" class="page">
-  <div class="narrow">
-    <div class="rsvp-hero">
-      <div class="event-name" id="rsvp-event-name">My Event</div>
-      <div class="event-date" id="rsvp-event-date"></div>
-    </div>
-    <div class="card">
-      <div class="greeting" id="rsvp-greeting"></div>
-      <p style="margin-top:4px">You're invited! Let us know if you can make it.</p>
-      <div style="margin-top:1.25rem">
-        <label>How many people are coming?</label>
-        <div class="seats-row">
-          <button class="seat-btn" id="btn-minus" onclick="changeSeat(-1)">−</button>
-          <div>
-            <div class="seat-num" id="seat-num">1</div>
-            <div class="seat-label" id="seat-max-label">of 2 max</div>
-          </div>
-          <button class="seat-btn" id="btn-plus" onclick="changeSeat(1)">+</button>
-        </div>
-      </div>
-      <div class="rsvp-actions">
-        <button class="btn-success btn" onclick="submitRsvp(true)">✓ I'll be there</button>
-        <button class="btn-danger btn"  onclick="submitRsvp(false)">✗ Can't make it</button>
-      </div>
-    </div>
-  </div>
-</div>
+    <div class="set-divider">Shown to guests who say yes</div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Venue name</label><input id="set-venue" placeholder="e.g. The Nile Ritz-Carlton"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Address</label><input id="set-address" placeholder="e.g. 1113 Corniche El Nil, Cairo"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Google Maps link (optional)</label><input id="set-map" placeholder="https://maps.google.com/..."/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Time</label><input id="set-time" placeholder="e.g. Reception 7:00 PM"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Dress code</label><input id="set-dress" placeholder="e.g. Formal · Black tie"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Photo link (optional)</label><input id="set-image" placeholder="https://...image.jpg"/></div>
 
-<!-- CONFIRMED PAGE -->
-<div id="page-confirmed" class="page">
-  <div class="confirmed-wrap">
-    <div class="icon" id="conf-icon">🎉</div>
-    <h1 id="conf-title">See you there!</h1>
-    <p id="conf-sub" style="margin-top:8px;font-size:15px"></p>
+    <div class="set-divider">Access</div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Host password</label><input id="set-pass" type="text"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveSettings()">Save changes</button>
+      <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
 const SUPABASE_URL = 'https://vlimnmitchnpftjznfli.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsaW1ubWl0Y2hucGZ0anpuZmxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODY0MTYsImV4cCI6MjA5NzY2MjQxNn0.vF4-SJBSwAe30YG2v-Ny65KjDH4TA5S-QIhDhMq5AM8';
-const H = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+const PUBLIC_DOMAIN = 'https://rsvp-app-theta-puce.vercel.app';
+// Dress-code colour story (from the moodboard). Edit these hex values to restyle the swatches.
+const DRESS_PALETTE = ['#D04E46','#EC9660','#E9C454','#96A842','#76844E','#A494C4'];
 
-let eventConfig = {};
-let guests = [];
-let currentGuest = null;
-let currentSeat = 1;
-
-/* ── UTILS ── */
-function uid() { return Math.random().toString(36).slice(2, 9); }
-function show(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
-
-/* ── SUPABASE ── */
-async function sb(method, path, body) {
-  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { method, headers: H, body: body ? JSON.stringify(body) : undefined });
-  if (!res.ok) { const e = await res.text(); throw new Error(e); }
-  if (method === 'GET') return res.json();
-  return null;
-}
-
-/* ── BOOT ── */
-async function boot() {
-  const params = new URLSearchParams(location.search);
-  const token = params.get('id');
-  if (token) { await loadGuestRsvp(token); return; }
-  if (sessionStorage.getItem('host_auth') === 'yes') { await loadHost(); return; }
-  show('page-login');
-}
-
-/* ── AUTH ── */
-async function doLogin() {
-  const pw = document.getElementById('login-pw').value.trim();
-  const cfg = await sb('GET', 'event_config?id=eq.1&select=host_password');
-  if (!cfg || !cfg.length) { return; }
-  if (pw !== cfg[0].host_password) { document.getElementById('login-err').style.display = 'block'; return; }
-  sessionStorage.setItem('host_auth', 'yes');
-  await loadHost();
-}
-function doLogout() { sessionStorage.removeItem('host_auth'); show('page-login'); }
-
-/* ── HOST DASHBOARD ── */
-async function loadHost() {
-  show('page-host');
-  const [cfg, gs] = await Promise.all([
-    sb('GET', 'event_config?id=eq.1'),
-    sb('GET', 'guests?order=created_at.asc')
-  ]);
-  eventConfig = cfg[0];
-  guests = gs;
-  document.getElementById('dsh-event-name').textContent = eventConfig.event_name;
-  document.getElementById('dsh-event-date').textContent = eventConfig.event_date || '';
-  renderGuests();
-}
-
-function renderGuests() {
-  const tbody = document.getElementById('guest-tbody');
-  const empty = document.getElementById('empty-state');
-  empty.style.display = guests.length ? 'none' : 'block';
-  const origin = 'https://rsvp-app-theta-puce.vercel.app/';
-  tbody.innerHTML = guests.map(g => {
-    const badge = g.rsvp === true ? '<span class="badge badge-yes">Confirmed</span>' : g.rsvp === false ? '<span class="badge badge-no">Declined</span>' : '<span class="badge badge-pending">Pending</span>';
-    const seats = g.rsvp === true ? g.seats_confirmed : '—';
-    const link = `${origin}?id=${g.token}`;
-    return `<tr>
-      <td style="font-weight:500">${g.name}</td>
-      <td>${badge}</td>
-      <td>${seats}</td>
-      <td><div class="link-row"><span class="mono">${g.token}</span><button class="btn btn-icon btn-sm" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
-      <td><button class="btn btn-sm" style="color:var(--red-text);border-color:var(--red-border)" onclick="removeGuest('${g.id}')">✕</button></td>
-    </tr>`;
-  }).join('');
-  renderStats();
-}
-
-function renderStats() {
-  const total = guests.length;
-  const confirmed = guests.filter(g => g.rsvp === true).length;
-  const declined = guests.filter(g => g.rsvp === false).length;
-  const seats = guests.filter(g => g.rsvp === true).reduce((a, g) => a + (g.seats_confirmed || 0), 0);
-  document.getElementById('stats-row').innerHTML = `
-    <div class="stat"><div class="n">${total}</div><div class="l">Invited</div></div>
-    <div class="stat"><div class="n g">${confirmed}</div><div class="l">Confirmed</div></div>
-    <div class="stat"><div class="n r">${declined}</div><div class="l">Declined</div></div>
-    <div class="stat"><div class="n">${seats}</div><div class="l">Total seats</div></div>
-  `;
-}
-
-async function addGuest() {
-  const name = document.getElementById('inp-name').value.trim();
-  const max = parseInt(document.getElementById('inp-seats').value) || 2;
-  if (!name) { toast('Enter a guest name'); return; }
-  const token = uid();
-  await sb('POST', 'guests', { name, max_seats: max, token, rsvp: null, seats_confirmed: null });
-  document.getElementById('inp-name').value = '';
-  toast('Guest added ✓');
-  guests = await sb('GET', 'guests?order=created_at.asc');
-  renderGuests();
-}
-
-async function removeGuest(id) {
-  await sb('DELETE', `guests?id=eq.${id}`);
-  guests = guests.filter(g => g.id !== id);
-  renderGuests();
-  toast('Guest removed');
-}
-
-function copyLink(link) {
-  navigator.clipboard.writeText(link).then(() => toast('Link copied!')).catch(() => {
-    prompt('Copy this link:', link);
+/* ============================================================
+   SUPABASE REST HELPER
+   ============================================================ */
+async function sb(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
   });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : null;
+}
+const getConfig = () => sb('event_config?id=eq.1&select=*').then(r => r && r[0]);
+const getGuests = () => sb('guests?select=*&order=created_at.asc');
+const getGuestByToken = t => sb(`guests?token=eq.${encodeURIComponent(t)}&select=*`).then(r => r && r[0]);
+
+/* ============================================================
+   STATE + ROUTING
+   ============================================================ */
+let CONFIG = null, GUESTS = [], FILTER = 'all', CURRENT_GUEST = null, SELECTED = null;
+
+function show(id){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
 }
 
-/* ── SETTINGS ── */
-function openSettings() {
-  document.getElementById('s-name').value = eventConfig.event_name;
-  document.getElementById('s-date').value = eventConfig.event_date || '';
-  document.getElementById('s-pw').value = eventConfig.host_password;
-  document.getElementById('settings-modal').style.display = 'flex';
-}
-function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
-async function saveSettings() {
-  const name = document.getElementById('s-name').value.trim();
-  const date = document.getElementById('s-date').value.trim();
-  const pw   = document.getElementById('s-pw').value.trim();
-  if (!name || !pw) { toast('Name and password are required'); return; }
-  await sb('PATCH', 'event_config?id=eq.1', { event_name: name, event_date: date, host_password: pw });
-  eventConfig = { ...eventConfig, event_name: name, event_date: date, host_password: pw };
-  document.getElementById('dsh-event-name').textContent = name;
-  document.getElementById('dsh-event-date').textContent = date;
-  closeSettings();
-  toast('Settings saved ✓');
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-/* ── GUEST RSVP ── */
-async function loadGuestRsvp(token) {
-  const [gRes, cfgRes] = await Promise.all([
-    sb('GET', `guests?token=eq.${token}`),
-    sb('GET', 'event_config?id=eq.1')
-  ]);
-  if (!gRes || !gRes.length) { show('page-confirmed'); document.getElementById('conf-icon').textContent = '🔗'; document.getElementById('conf-title').textContent = 'Link not found'; document.getElementById('conf-sub').textContent = 'This invite link is invalid.'; return; }
-  currentGuest = gRes[0];
-  eventConfig = cfgRes[0];
+async function boot(){
+  try { CONFIG = await getConfig(); } catch(e){ console.error(e); }
+  const id = new URLSearchParams(location.search).get('id');
+  if (id) {
+    await loadGuestView(id);
+  } else if (localStorage.getItem('rsvp_host') === '1') {
+    await openDashboard();
+  } else {
+    show('login');
+  }
+}
 
-  if (currentGuest.rsvp !== null) {
-    showConfirmed(currentGuest.rsvp, currentGuest.seats_confirmed);
+/* ============================================================
+   GUEST VIEW
+   ============================================================ */
+async function loadGuestView(token){
+  // names from config event_name "Mohamad & Marya"
+  if (CONFIG && CONFIG.event_name && CONFIG.event_name.includes('&')) {
+    const [a,b] = CONFIG.event_name.split('&').map(s => s.trim().toLowerCase());
+    document.getElementById('g-name1').textContent = a || 'mohamad';
+    document.getElementById('g-name2').textContent = b || 'marya';
+  }
+  if (CONFIG && CONFIG.event_date) document.getElementById('g-meta').textContent = CONFIG.event_date;
+  document.getElementById('g-occasion').textContent = (CONFIG && CONFIG.occasion) || 'engagement celebration';
+
+  let guest;
+  try { guest = await getGuestByToken(token); } catch(e){ console.error(e); }
+  show('guest');
+
+  if (!guest) {
+    document.getElementById('g-body').innerHTML =
+      `<div class="notfound"><h3>Invitation not found</h3><p>This link may be incomplete. Please check the message we sent you, or reach out to us directly.</p></div>`;
     return;
   }
+  CURRENT_GUEST = guest;
+  SELECTED = guest.rsvp === false ? 0 : (guest.seats_confirmed || null);
 
-  currentSeat = 1;
-  document.getElementById('rsvp-event-name').textContent = eventConfig.event_name;
-  document.getElementById('rsvp-event-date').textContent = eventConfig.event_date || '';
-  document.getElementById('rsvp-greeting').textContent = `Hi ${currentGuest.name} 👋`;
-  document.getElementById('seat-max-label').textContent = `of ${currentGuest.max_seats} max`;
-  updateSeatUI();
-  show('page-rsvp');
+  if (guest.rsvp !== null) renderThanks(guest);
+  else renderGuestForm(guest);
 }
 
-function changeSeat(d) {
-  currentSeat = Math.max(1, Math.min(currentGuest.max_seats, currentSeat + d));
-  updateSeatUI();
-}
-function updateSeatUI() {
-  document.getElementById('seat-num').textContent = currentSeat;
-  document.getElementById('btn-minus').disabled = currentSeat <= 1;
-  document.getElementById('btn-plus').disabled  = currentSeat >= currentGuest.max_seats;
-}
-
-async function submitRsvp(coming) {
-  await sb('PATCH', `guests?id=eq.${currentGuest.id}`, { rsvp: coming, seats_confirmed: coming ? currentSeat : 0 });
-  showConfirmed(coming, currentSeat);
-}
-
-function showConfirmed(coming, seats) {
-  if (coming) {
-    document.getElementById('conf-icon').textContent = '🎉';
-    document.getElementById('conf-title').textContent = `See you there, ${currentGuest.name}!`;
-    document.getElementById('conf-sub').textContent = `You've confirmed ${seats} seat${seats > 1 ? 's' : ''} for ${eventConfig.event_name}.`;
-  } else {
-    document.getElementById('conf-icon').textContent = '💙';
-    document.getElementById('conf-title').textContent = `Thanks for letting us know`;
-    document.getElementById('conf-sub').textContent = `Sorry you can't make it, ${currentGuest.name}. We'll miss you!`;
+function renderGuestForm(guest){
+  const max = guest.max_seats || 1;
+  let pills = '';
+  for (let i = 1; i <= max; i++){
+    pills += `<button class="seat-pill" data-n="${i}" onclick="selectSeats(${i})">
+      <span class="n">${i}</span><span class="l">${i===1?'seat':'seats'}</span></button>`;
   }
-  show('page-confirmed');
+  document.getElementById('g-body').innerHTML = `
+    <h2 class="greet">Dear ${escapeHtml(guest.name)},</h2>
+    <p class="sub">We'd be so happy to celebrate with you. Let us know how many of you will join.</p>
+    <p class="q">How many seats will you use?</p>
+    <div class="seats">${pills}</div>
+    <button class="decline" data-n="0" onclick="selectSeats(0)">Sadly, I can't make it</button>
+    <button class="confirm" id="confirm-btn" disabled onclick="submitRSVP()">Confirm response</button>
+  `;
+  // restore prior selection if editing
+  if (SELECTED !== null) highlightSelection();
 }
+
+function selectSeats(n){
+  SELECTED = n;
+  highlightSelection();
+  document.getElementById('confirm-btn').disabled = false;
+}
+function highlightSelection(){
+  document.querySelectorAll('.seat-pill').forEach(p => p.classList.toggle('sel', +p.dataset.n === SELECTED));
+  const dec = document.querySelector('.decline');
+  if (dec) dec.classList.toggle('sel', SELECTED === 0);
+  const btn = document.getElementById('confirm-btn');
+  if (btn) btn.disabled = SELECTED === null;
+}
+
+async function submitRSVP(){
+  if (SELECTED === null) return;
+  const attending = SELECTED > 0;
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await sb(`guests?token=eq.${encodeURIComponent(CURRENT_GUEST.token)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ rsvp: attending, seats_confirmed: attending ? SELECTED : null })
+    });
+    CURRENT_GUEST.rsvp = attending;
+    CURRENT_GUEST.seats_confirmed = attending ? SELECTED : null;
+    renderThanks(CURRENT_GUEST);
+  } catch(e){
+    console.error(e);
+    btn.disabled = false; btn.textContent = 'Confirm response';
+    toast('Something went wrong — please try again.');
+  }
+}
+
+function renderThanks(guest){
+  const declined = guest.rsvp === false;
+  const body = document.getElementById('g-body');
+  if (declined){
+    body.innerHTML = `
+      <div class="thanks declined">
+        <div class="check">♡</div>
+        <h3>We'll miss you</h3>
+        <p>Thank you for letting us know, ${escapeHtml(firstName(guest.name))}. You'll be in our hearts on the day.</p>
+        <div class="note">If your plans change, you can update your response any time — we'd love to celebrate with you.</div>
+        <button class="edit-link" onclick="editResponse()">Change my response</button>
+      </div>`;
+  } else {
+    const s = guest.seats_confirmed;
+    body.innerHTML = `
+      <div class="thanks">
+        <div class="check">✓</div>
+        <h3>You're confirmed!</h3>
+        <p>We've saved <strong>${s} ${s===1?'seat':'seats'}</strong> for you, ${escapeHtml(firstName(guest.name))}. See you there 💗</p>
+        <button class="edit-link" onclick="editResponse()">Change my response</button>
+      </div>
+      ${buildDetails()}`;
+  }
+}
+
+function buildDetails(){
+  const c = CONFIG || {};
+  const venue = (c.venue || '').trim();
+  const address = (c.venue_address || '').trim();
+  const map = (c.map_url || '').trim();
+  const when = [(c.event_date || '').trim(), (c.event_time || '').trim()].filter(Boolean).join(' · ');
+  const dress = (c.dress_code || '').trim();
+  const img = (c.hero_image_url || '').trim();
+  const isUrl = u => /^https?:\/\//i.test(u);
+
+  const imgHtml = isUrl(img)
+    ? `<div class="detail-img" style="background-image:url('${escapeAttr(img)}')"></div>`
+    : `<div class="detail-deco">♡</div>`;
+
+  const rows = [];
+  if (venue || address){
+    let v = `<div class="dval">${escapeHtml(venue || 'Venue')}</div>`;
+    if (address) v += `<div class="dsub">${escapeHtml(address)}</div>`;
+    if (isUrl(map)) v += `<a class="maps-link" href="${escapeAttr(map)}" target="_blank" rel="noopener">Open in Maps ↗</a>`;
+    rows.push(`<div class="detail-row"><span class="dicon">📍</span><div><div class="dlabel">Where</div>${v}</div></div>`);
+  }
+  if (when) rows.push(`<div class="detail-row"><span class="dicon">🗓️</span><div><div class="dlabel">When</div><div class="dval">${escapeHtml(when)}</div></div></div>`);
+  if (dress){
+    const sw = DRESS_PALETTE.map(c => `<span class="swatch" style="background:${c}"></span>`).join('');
+    rows.push(`<div class="detail-row"><span class="dicon">👗</span><div><div class="dlabel">Dress code</div><div class="dval">${escapeHtml(dress)}</div><div class="swatches">${sw}</div></div></div>`);
+  }
+
+  if (!rows.length){
+    return `${imgHtml}<p class="details-soon">Full details are coming soon — we'll share the venue, timing, and dress code closer to the day. 💗</p>`;
+  }
+  return `${imgHtml}<div class="details"><h4 class="details-title">The details</h4>${rows.join('')}</div>`;
+}
+function editResponse(){
+  SELECTED = CURRENT_GUEST.rsvp === false ? 0 : (CURRENT_GUEST.seats_confirmed || null);
+  renderGuestForm(CURRENT_GUEST);
+}
+
+/* ============================================================
+   HOST LOGIN
+   ============================================================ */
+async function doLogin(){
+  const pass = document.getElementById('login-pass').value.trim();
+  const err = document.getElementById('login-err');
+  if (!CONFIG) { try { CONFIG = await getConfig(); } catch(e){ console.error(e); } }
+  if (!CONFIG){
+    err.textContent = "Couldn't reach the database — check your connection and refresh.";
+    err.style.display = 'block';
+    return;
+  }
+  if (pass === String(CONFIG.host_password || '').trim()){
+    localStorage.setItem('rsvp_host','1');
+    err.style.display = 'none';
+    await openDashboard();
+  } else {
+    err.textContent = 'Wrong password — try again.';
+    err.style.display = 'block';
+  }
+}
+function logout(){ localStorage.removeItem('rsvp_host'); location.href = location.pathname; }
+
+/* ============================================================
+   HOST DASHBOARD
+   ============================================================ */
+async function openDashboard(){
+  if (!CONFIG) CONFIG = await getConfig();
+  document.getElementById('dash-event').textContent = CONFIG.event_name || 'My Event';
+  show('host');
+  await refreshGuests();
+}
+async function refreshGuests(){
+  try { GUESTS = await getGuests() || []; } catch(e){ console.error(e); GUESTS = []; }
+  renderStats();
+  renderGuests();
+}
+
+function setFilter(side){
+  FILTER = side;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.side === side));
+  renderGuests();
+}
+
+function renderStats(){
+  const seatsOf = arr => arr.reduce((a,g) => a + (g.max_seats||0), 0);
+  const bride = GUESTS.filter(g => (g.side||'bride') === 'bride');
+  const groom = GUESTS.filter(g => (g.side||'bride') === 'groom');
+  document.getElementById('split-bride').textContent = `${bride.length} ${bride.length===1?'guest':'guests'} · ${seatsOf(bride)} seats`;
+  document.getElementById('split-groom').textContent = `${groom.length} ${groom.length===1?'guest':'guests'} · ${seatsOf(groom)} seats`;
+
+  const view = FILTER === 'all' ? GUESTS : GUESTS.filter(g => (g.side||'bride') === FILTER);
+  const invited = seatsOf(view);
+  const seats = view.filter(g => g.rsvp === true).reduce((a,g) => a + (g.seats_confirmed||0), 0);
+  const declined = view.filter(g => g.rsvp === false).length;
+  const pending = view.filter(g => g.rsvp === null).length;
+  document.getElementById('st-total').textContent = view.length;
+  document.getElementById('st-inv').textContent = invited;
+  document.getElementById('st-att').textContent = seats;
+  document.getElementById('st-dec').textContent = declined;
+  document.getElementById('st-pend').textContent = pending;
+}
+
+function renderGuests(){
+  renderStats();
+  const view = FILTER === 'all' ? GUESTS : GUESTS.filter(g => (g.side||'bride') === FILTER);
+  const wrap = document.getElementById('table-wrap');
+  if (!view.length){
+    wrap.innerHTML = `<div class="empty">No guests ${FILTER==='all'?'yet':'on this side yet'}. Add your first one above.</div>`;
+    return;
+  }
+  let rows = '';
+  view.forEach(g => {
+    const side = g.side || 'bride';
+    const link = `${PUBLIC_DOMAIN}/?id=${g.token}`;
+    let status, sclass;
+    if (g.rsvp === true){ status = `${g.seats_confirmed} ${g.seats_confirmed===1?'seat':'seats'}`; sclass='attending'; }
+    else if (g.rsvp === false){ status = 'Declined'; sclass='declined'; }
+    else { status = 'Awaiting reply'; sclass='pending'; }
+    rows += `<tr>
+      <td>
+        <div class="g-name">${escapeHtml(g.name)}</div>
+        <button class="btn btn-ghost btn-sm copy-mobile" onclick="copyLink('${link}')">⎘ Copy link</button>
+      </td>
+      <td><span class="side-badge ${side}">${side==='bride'?"Bride's":"Groom's"}</span></td>
+      <td>${g.max_seats}</td>
+      <td><span class="status ${sclass}"><span class="d"></span>${status}</span></td>
+      <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
+      <td><button class="icon-btn del-btn" title="Remove guest" onclick="removeGuest('${g.id}','${escapeHtml(g.name)}')">🗑</button></td>
+    </tr>`;
+  });
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Guest</th><th>Side</th><th>Max</th><th>Status</th><th class="col-link">RSVP link</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+async function addGuest(){
+  const name = document.getElementById('add-name').value.trim();
+  const max = parseInt(document.getElementById('add-seats').value) || 1;
+  const side = document.getElementById('add-side').value;
+  if (!name){ toast('Enter a guest name first.'); return; }
+  const token = genToken();
+  try {
+    await sb('guests', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ name, max_seats: max, side, token })
+    });
+    document.getElementById('add-name').value = '';
+    document.getElementById('add-seats').value = '2';
+    await refreshGuests();
+    toast(`${name} added.`);
+  } catch(e){
+    console.error(e);
+    toast('Could not add guest — check the "side" column exists.');
+  }
+}
+
+async function removeGuest(id, name){
+  if (!confirm(`Remove ${name} from the guest list?`)) return;
+  try {
+    await sb(`guests?id=eq.${id}`, { method: 'DELETE' });
+    await refreshGuests();
+    toast(`${name} removed.`);
+  } catch(e){ console.error(e); toast('Could not remove guest.'); }
+}
+
+function copyLink(link){
+  navigator.clipboard.writeText(link).then(() => toast('Link copied — paste it into WhatsApp.'))
+    .catch(() => { prompt('Copy this link:', link); });
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function openSettings(){
+  const v = (id, val) => document.getElementById(id).value = val || '';
+  v('set-name', CONFIG.event_name);
+  v('set-occasion', CONFIG.occasion || 'engagement celebration');
+  v('set-date', CONFIG.event_date);
+  v('set-venue', CONFIG.venue);
+  v('set-address', CONFIG.venue_address);
+  v('set-map', CONFIG.map_url);
+  v('set-time', CONFIG.event_time);
+  v('set-dress', CONFIG.dress_code);
+  v('set-image', CONFIG.hero_image_url);
+  v('set-pass', CONFIG.host_password);
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettings(){ document.getElementById('settings-modal').classList.remove('show'); }
+async function saveSettings(){
+  const val = id => document.getElementById(id).value.trim();
+  const event_name = val('set-name') || 'My Event';
+  const event_date = val('set-date');
+  const host_password = val('set-pass') || 'changeme123';
+  const payload = { event_name, event_date, host_password };
+
+  // optional columns: only send the ones that exist in the DB, so save never fails pre-migration
+  const optional = {
+    occasion: val('set-occasion'),
+    venue: val('set-venue'),
+    venue_address: val('set-address'),
+    map_url: val('set-map'),
+    event_time: val('set-time'),
+    dress_code: val('set-dress'),
+    hero_image_url: val('set-image')
+  };
+  let needsMigration = false;
+  for (const [k, value] of Object.entries(optional)){
+    if (k in CONFIG) payload[k] = value;
+    else if (value) needsMigration = true;
+  }
+
+  try {
+    await sb('event_config?id=eq.1', {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(payload)
+    });
+    CONFIG = { ...CONFIG, ...payload };
+    document.getElementById('dash-event').textContent = event_name;
+    closeSettings();
+    toast(needsMigration
+      ? 'Saved — but run the database update so venue/dress details persist.'
+      : 'Settings saved.');
+  } catch(e){ console.error(e); toast('Could not save settings.'); }
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function genToken(){ return Math.random().toString(36).slice(2, 10); }
+function firstName(n){ return (n||'').trim().split(/\s+/)[0] || n; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/'/g,'%27').replace(/"/g,'%22').replace(/</g,'%3C').replace(/>/g,'%3E'); }
 
 boot();
 </script>

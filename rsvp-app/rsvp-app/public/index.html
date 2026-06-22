@@ -479,14 +479,21 @@ function editResponse(){
    HOST LOGIN
    ============================================================ */
 async function doLogin(){
-  const pass = document.getElementById('login-pass').value;
-  if (!CONFIG) { try { CONFIG = await getConfig(); } catch(e){} }
-  if (CONFIG && pass === CONFIG.host_password){
+  const pass = document.getElementById('login-pass').value.trim();
+  const err = document.getElementById('login-err');
+  if (!CONFIG) { try { CONFIG = await getConfig(); } catch(e){ console.error(e); } }
+  if (!CONFIG){
+    err.textContent = "Couldn't reach the database — check your connection and refresh.";
+    err.style.display = 'block';
+    return;
+  }
+  if (pass === String(CONFIG.host_password || '').trim()){
     localStorage.setItem('rsvp_host','1');
-    document.getElementById('login-err').style.display = 'none';
+    err.style.display = 'none';
     await openDashboard();
   } else {
-    document.getElementById('login-err').style.display = 'block';
+    err.textContent = 'Wrong password — try again.';
+    err.style.display = 'block';
   }
 }
 function logout(){ localStorage.removeItem('rsvp_host'); location.href = location.pathname; }

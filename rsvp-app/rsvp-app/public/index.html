@@ -151,7 +151,7 @@
   .panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:18px}
   .panel h3{margin:0 0 14px;font-size:14px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
 
-  .add-row{display:grid;grid-template-columns:1fr 110px 150px auto;gap:10px;align-items:end}
+  .add-row{display:grid;grid-template-columns:1.3fr 1fr 88px 130px auto;gap:10px;align-items:end}
   .field label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px;font-weight:600}
   input,select{
     width:100%;padding:12px 13px;border-radius:12px;border:1.5px solid var(--line);font-size:15px;
@@ -162,6 +162,10 @@
   .btn{padding:12px 18px;border-radius:12px;border:none;font-weight:600;font-size:14.5px;cursor:pointer;font-family:inherit;transition:.13s ease;white-space:nowrap}
   .btn-primary{background:var(--fuchsia);color:#fff}
   .btn-primary:hover{background:var(--fuchsia-deep)}
+  .btn-wa{background:#25D366;color:#fff}
+  .btn-wa:hover{background:#1da851}
+  .icon-btn.wa{color:#1da851}
+  .icon-btn.wa:hover{border-color:#25D366;color:#1da851;background:#eafaf0}
   .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
   .btn-ghost:hover{border-color:var(--fuchsia);color:var(--fuchsia)}
   .btn-sm{padding:8px 12px;font-size:13px}
@@ -299,6 +303,7 @@
       <h3>Add a guest</h3>
       <div class="add-row">
         <div class="field wide"><label>Name</label><input id="add-name" placeholder="e.g. Sara Khalil" onkeydown="if(event.key==='Enter')addGuest()"/></div>
+        <div class="field wide"><label>Phone (WhatsApp)</label><input id="add-phone" placeholder="e.g. 201012345678" onkeydown="if(event.key==='Enter')addGuest()"/></div>
         <div class="field"><label>Max seats</label><input id="add-seats" type="number" min="1" max="20" value="2"/></div>
         <div class="field"><label>Side</label><select id="add-side"><option value="bride">Bride's side</option><option value="groom">Groom's side</option></select></div>
         <div class="add-btn"><button class="btn btn-primary" onclick="addGuest()">+ Add guest</button></div>
@@ -331,6 +336,9 @@
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Time</label><input id="set-time" placeholder="e.g. Reception 7:00 PM"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Dress code</label><input id="set-dress" placeholder="e.g. Formal · Black tie"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Photo link (optional)</label><input id="set-image" placeholder="https://...image.jpg"/></div>
+
+    <div class="set-divider">WhatsApp sending</div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Default country code (digits only)</label><input id="set-cc" placeholder="e.g. 20 for Egypt, 971 for UAE"/></div>
 
     <div class="set-divider">Access</div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Host password</label><input id="set-pass" type="text"/></div>
@@ -628,12 +636,15 @@ function renderGuests(){
     rows += `<tr>
       <td>
         <div class="g-name">${escapeHtml(g.name)}</div>
-        <button class="btn btn-ghost btn-sm copy-mobile" onclick="copyLink('${link}')">⎘ Copy link</button>
+        <div class="copy-mobile" style="gap:8px;flex-wrap:wrap">
+          <button class="btn btn-wa btn-sm" onclick="sendWhatsApp('${g.id}')">Send on WhatsApp</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyLink('${link}')">⎘ Copy link</button>
+        </div>
       </td>
       <td><span class="side-badge ${side}">${side==='bride'?"Bride's":"Groom's"}</span></td>
       <td>${g.max_seats}</td>
       <td><span class="status ${sclass}"><span class="d"></span>${status}</span></td>
-      <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
+      <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn wa" title="Send on WhatsApp" onclick="sendWhatsApp('${g.id}')">➤</button><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
       <td><button class="icon-btn del-btn" title="Remove guest" onclick="removeGuest('${g.id}','${escapeHtml(g.name)}')">🗑</button></td>
     </tr>`;
   });
@@ -644,20 +655,25 @@ function renderGuests(){
 
 async function addGuest(){
   const name = document.getElementById('add-name').value.trim();
+  const phone = document.getElementById('add-phone').value.trim();
   const max = parseInt(document.getElementById('add-seats').value) || 1;
   const side = document.getElementById('add-side').value;
   if (!name){ toast('Enter a guest name first.'); return; }
   const token = genToken();
+  const base = { name, max_seats: max, side, token };
+  const post = body => sb('guests', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(body) });
   try {
-    await sb('guests', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ name, max_seats: max, side, token })
-    });
+    try {
+      await post({ ...base, phone });        // try with phone
+    } catch(inner){
+      await post(base);                       // phone column not added yet → save without it
+      if (phone) toast('Saved — run the DB update so phone numbers persist.');
+    }
     document.getElementById('add-name').value = '';
+    document.getElementById('add-phone').value = '';
     document.getElementById('add-seats').value = '2';
     await refreshGuests();
-    toast(`${name} added.`);
+    if (!phone) toast(`${name} added.`);
   } catch(e){
     console.error(e);
     toast('Could not add guest — check the "side" column exists.');
@@ -678,6 +694,27 @@ function copyLink(link){
     .catch(() => { prompt('Copy this link:', link); });
 }
 
+function waNumber(raw){
+  let p = String(raw || '').replace(/[^\d]/g, '');     // digits only (drops + spaces dashes)
+  if (!p) return '';
+  if (p.startsWith('00')) return p.slice(2);            // 0020... → 20...
+  const cc = String((CONFIG && CONFIG.country_code) || '').replace(/[^\d]/g, '');
+  if (cc && p.startsWith('0')) return cc + p.slice(1);  // local 010... + code 20 → 20 10...
+  return p;
+}
+
+function sendWhatsApp(id){
+  const g = GUESTS.find(x => x.id === id);
+  if (!g) return;
+  const link = `${PUBLIC_DOMAIN}/?id=${g.token}`;
+  const names = (CONFIG && CONFIG.event_name) || 'We';
+  const occ = (CONFIG && CONFIG.occasion) || 'engagement celebration';
+  const msg = `Hi ${firstName(g.name)}! ${names} would love to have you at their ${occ} 💗\n\nPlease let us know if you can join us here:\n${link}`;
+  const num = waNumber(g.phone);
+  const base = num ? `https://wa.me/${num}` : 'https://wa.me/';   // no number → WhatsApp lets you pick the contact
+  window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
 /* ============================================================
    SETTINGS
    ============================================================ */
@@ -692,6 +729,7 @@ function openSettings(){
   v('set-time', CONFIG.event_time);
   v('set-dress', CONFIG.dress_code);
   v('set-image', CONFIG.hero_image_url);
+  v('set-cc', CONFIG.country_code);
   v('set-pass', CONFIG.host_password);
   document.getElementById('settings-modal').classList.add('show');
 }
@@ -711,7 +749,8 @@ async function saveSettings(){
     map_url: val('set-map'),
     event_time: val('set-time'),
     dress_code: val('set-dress'),
-    hero_image_url: val('set-image')
+    hero_image_url: val('set-image'),
+    country_code: val('set-cc')
   };
   let needsMigration = false;
   for (const [k, value] of Object.entries(optional)){

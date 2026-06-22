@@ -16,7 +16,7 @@
     --green-text: #1e6b1e;
     --green-border: #b7ddb7;
     --red-bg: #fdf0f0;
-    --red-text: #9b1c1c;
+    --red-text: #9b1c1c;a
     --red-border: #f0b8b8;
     --yellow-bg: #fdfbee;
     --yellow-text: #7a6200;
@@ -320,7 +320,7 @@ function renderGuests() {
   const tbody = document.getElementById('guest-tbody');
   const empty = document.getElementById('empty-state');
   empty.style.display = guests.length ? 'none' : 'block';
-  const origin = location.origin + location.pathname;
+  const origin = 'https://rsvp-app-theta-puce.vercel.app/';
   tbody.innerHTML = guests.map(g => {
     const badge = g.rsvp === true ? '<span class="badge badge-yes">Confirmed</span>' : g.rsvp === false ? '<span class="badge badge-no">Declined</span>' : '<span class="badge badge-pending">Pending</span>';
     const seats = g.rsvp === true ? g.seats_confirmed : '—';

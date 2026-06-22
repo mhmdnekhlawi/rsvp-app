@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RSVP</title>
+<title>RSVP — Mohamad & Marya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -16,7 +18,7 @@
     --green-text: #1e6b1e;
     --green-border: #b7ddb7;
     --red-bg: #fdf0f0;
-    --red-text: #9b1c1c;a
+    --red-text: #9b1c1c;
     --red-border: #f0b8b8;
     --yellow-bg: #fdfbee;
     --yellow-text: #7a6200;
@@ -221,39 +223,49 @@
 
 <!-- GUEST RSVP PAGE -->
 <div id="page-rsvp" class="page">
-  <div class="narrow">
-    <div class="rsvp-hero">
-      <div class="event-name" id="rsvp-event-name">My Event</div>
-      <div class="event-date" id="rsvp-event-date"></div>
+  <div style="min-height:100vh;background:#fdf8f5;font-family:'Jost',sans-serif;">
+    <div style="background:#d4387a;padding:48px 24px 32px;text-align:center;">
+      <div style="font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.2em;color:#f9c0d8;text-transform:uppercase;margin-bottom:12px;">you're invited</div>
+      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:400;color:#fff;line-height:1.2;margin-bottom:8px;">Mohamad<br>&amp; Marya</div>
+      <div style="font-size:13px;color:#f9c0d8;letter-spacing:.1em;margin-top:12px;" id="rsvp-event-date-styled"></div>
     </div>
-    <div class="card">
-      <div class="greeting" id="rsvp-greeting"></div>
-      <p style="margin-top:4px">You're invited! Let us know if you can make it.</p>
-      <div style="margin-top:1.25rem">
-        <label>How many people are coming?</label>
-        <div class="seats-row">
-          <button class="seat-btn" id="btn-minus" onclick="changeSeat(-1)">−</button>
-          <div>
-            <div class="seat-num" id="seat-num">1</div>
-            <div class="seat-label" id="seat-max-label">of 2 max</div>
-          </div>
-          <button class="seat-btn" id="btn-plus" onclick="changeSeat(1)">+</button>
-        </div>
+    <svg viewBox="0 0 390 32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;margin-top:-1px;background:#fdf8f5;">
+      <path d="M0,0 C60,32 120,0 180,16 C240,32 300,0 360,16 C375,20 385,10 390,16 L390,0 Z" fill="#d4387a"/>
+    </svg>
+    <div style="padding:8px 24px 48px;max-width:420px;margin:0 auto;">
+      <div style="font-family:'Playfair Display',serif;font-size:22px;color:#1a1a1a;margin-bottom:6px;" id="rsvp-greeting"></div>
+      <div style="font-size:14px;color:#999;line-height:1.6;margin-bottom:24px;">We'd love to celebrate with you. Let us know if you can make it.</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:0 0 20px;"><div style="flex:1;height:1px;background:#f0e6ee;"></div><div style="font-size:13px;color:#e8c6d6;">✦</div><div style="flex:1;height:1px;background:#f0e6ee;"></div></div>
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#bbb;margin-bottom:14px;text-align:center;">How many seats do you need?</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:8px;">
+        <button id="btn-minus" onclick="changeSeat(-1)" style="width:44px;height:44px;border-radius:50%;border:1.5px solid #e8c6d6;background:#fff;font-size:24px;color:#d4387a;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <div style="font-family:'Playfair Display',serif;font-size:48px;color:#1a1a1a;min-width:48px;text-align:center;line-height:1;" id="seat-num">1</div>
+        <button id="btn-plus" onclick="changeSeat(1)" style="width:44px;height:44px;border-radius:50%;border:1.5px solid #e8c6d6;background:#fff;font-size:24px;color:#d4387a;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
       </div>
-      <div class="rsvp-actions">
-        <button class="btn-success btn" onclick="submitRsvp(true)">✓ I'll be there</button>
-        <button class="btn-danger btn"  onclick="submitRsvp(false)">✗ Can't make it</button>
-      </div>
+      <div style="text-align:center;font-size:12px;color:#ccc;margin-bottom:28px;" id="seat-max-label">up to 2 seats</div>
+      <button onclick="submitRsvp(true)" style="width:100%;padding:16px;background:#d4387a;color:#fff;border:none;border-radius:50px;font-family:'Jost',sans-serif;font-size:14px;letter-spacing:.08em;cursor:pointer;margin-bottom:12px;">I'll be there</button>
+      <button onclick="submitRsvp(false)" style="width:100%;padding:15px;background:#fff;color:#d4387a;border:1.5px solid #e8c6d6;border-radius:50px;font-family:'Jost',sans-serif;font-size:14px;letter-spacing:.08em;cursor:pointer;">Sorry, can't make it</button>
     </div>
   </div>
 </div>
 
 <!-- CONFIRMED PAGE -->
 <div id="page-confirmed" class="page">
-  <div class="confirmed-wrap">
-    <div class="icon" id="conf-icon">🎉</div>
-    <h1 id="conf-title">See you there!</h1>
-    <p id="conf-sub" style="margin-top:8px;font-size:15px"></p>
+  <div style="min-height:100vh;background:#fdf8f5;font-family:'Jost',sans-serif;">
+    <div style="background:#d4387a;padding:48px 24px 32px;text-align:center;">
+      <div style="font-family:'Jost',sans-serif;font-size:10px;letter-spacing:.2em;color:#f9c0d8;text-transform:uppercase;margin-bottom:12px;">you're invited</div>
+      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:400;color:#fff;line-height:1.2;">Mohamad<br>&amp; Marya</div>
+    </div>
+    <svg viewBox="0 0 390 32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;margin-top:-1px;background:#fdf8f5;">
+      <path d="M0,0 C60,32 120,0 180,16 C240,32 300,0 360,16 C375,20 385,10 390,16 L390,0 Z" fill="#d4387a"/>
+    </svg>
+    <div style="padding:16px 24px 48px;max-width:420px;margin:0 auto;text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;" id="conf-icon">🎉</div>
+      <div style="font-family:'Playfair Display',serif;font-size:26px;color:#1a1a1a;margin-bottom:10px;" id="conf-title">See you there!</div>
+      <div style="font-size:14px;color:#999;line-height:1.7;" id="conf-sub"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin:28px 0;"><div style="flex:1;height:1px;background:#f0e6ee;"></div><div style="font-size:13px;color:#e8c6d6;">✦</div><div style="flex:1;height:1px;background:#f0e6ee;"></div></div>
+      <div style="font-size:13px;color:#ccc;letter-spacing:.08em;">Mohamad &amp; Marya · Cairo</div>
+    </div>
   </div>
 </div>
 
@@ -411,8 +423,7 @@ async function loadGuestRsvp(token) {
   }
 
   currentSeat = 1;
-  document.getElementById('rsvp-event-name').textContent = eventConfig.event_name;
-  document.getElementById('rsvp-event-date').textContent = eventConfig.event_date || '';
+  document.getElementById('rsvp-event-date-styled').textContent = eventConfig.event_date || '';
   document.getElementById('rsvp-greeting').textContent = `Hi ${currentGuest.name} 👋`;
   document.getElementById('seat-max-label').textContent = `of ${currentGuest.max_seats} max`;
   updateSeatUI();

@@ -68,6 +68,7 @@
   }
   .hero .amp{font-style:italic;font-weight:500;opacity:.92;display:block;font-size:.62em;margin:6px 0}
   .hero .meta{margin:18px 0 0;font-size:14px;letter-spacing:.04em;opacity:.95}
+  .hero .occasion{margin:14px 0 0;font-family:'Playfair Display',serif;font-style:italic;font-size:17px;font-weight:500;opacity:.96}
   .wave{position:absolute;left:0;right:0;bottom:-1px;width:100%;display:block}
 
   .body{padding:30px 30px 34px}
@@ -224,8 +225,9 @@
   <div class="guest-wrap">
     <div class="card">
       <div class="hero">
-        <p class="eyebrow">You're invited</p>
+        <p class="eyebrow">You're invited to</p>
         <h1 class="names"><span id="g-name1">mohamad</span><span class="amp">&amp;</span><span id="g-name2">marya</span></h1>
+        <p class="occasion" id="g-occasion">engagement celebration</p>
         <p class="meta" id="g-meta">Cairo</p>
         <svg class="wave" viewBox="0 0 480 28" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0,14 C40,28 80,0 120,14 C160,28 200,0 240,14 C280,28 320,0 360,14 C400,28 440,0 480,14 L480,28 L0,28 Z" fill="#ffffff"/>
@@ -300,6 +302,7 @@
   <div class="modal">
     <h3>Event settings</h3>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Event name</label><input id="set-name"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Occasion (shown under the names)</label><input id="set-occasion" placeholder="e.g. engagement celebration"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Date / details (shown to guests)</label><input id="set-date" placeholder="e.g. 12 September 2026 · Cairo"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Host password</label><input id="set-pass" type="text"/></div>
     <div class="modal-actions">
@@ -379,6 +382,7 @@ async function loadGuestView(token){
     document.getElementById('g-name2').textContent = b || 'marya';
   }
   if (CONFIG && CONFIG.event_date) document.getElementById('g-meta').textContent = CONFIG.event_date;
+  document.getElementById('g-occasion').textContent = (CONFIG && CONFIG.occasion) || 'engagement celebration';
 
   let guest;
   try { guest = await getGuestByToken(token); } catch(e){ console.error(e); }
@@ -613,6 +617,7 @@ function copyLink(link){
    ============================================================ */
 function openSettings(){
   document.getElementById('set-name').value = CONFIG.event_name || '';
+  document.getElementById('set-occasion').value = CONFIG.occasion || 'engagement celebration';
   document.getElementById('set-date').value = CONFIG.event_date || '';
   document.getElementById('set-pass').value = CONFIG.host_password || '';
   document.getElementById('settings-modal').classList.add('show');
@@ -621,17 +626,21 @@ function closeSettings(){ document.getElementById('settings-modal').classList.re
 async function saveSettings(){
   const event_name = document.getElementById('set-name').value.trim() || 'My Event';
   const event_date = document.getElementById('set-date').value.trim();
+  const occasion = document.getElementById('set-occasion').value.trim();
   const host_password = document.getElementById('set-pass').value.trim() || 'changeme123';
+  const payload = { event_name, event_date, host_password };
+  // only send occasion if the column exists, so save never fails before the migration
+  if ('occasion' in CONFIG) payload.occasion = occasion;
   try {
     await sb('event_config?id=eq.1', {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ event_name, event_date, host_password })
+      body: JSON.stringify(payload)
     });
-    CONFIG = { ...CONFIG, event_name, event_date, host_password };
+    CONFIG = { ...CONFIG, ...payload };
     document.getElementById('dash-event').textContent = event_name;
     closeSettings();
-    toast('Settings saved.');
+    toast('occasion' in CONFIG ? 'Settings saved.' : 'Saved. (Add the occasion column to edit the occasion text.)');
   } catch(e){ console.error(e); toast('Could not save settings.'); }
 }
 

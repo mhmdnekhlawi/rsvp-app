@@ -140,7 +140,7 @@
   .split-chip .k{font-size:12px;color:var(--muted);letter-spacing:.03em}
   .split-chip .v{font-size:18px;font-weight:700}
 
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
   .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px}
   .stat .v{font-size:26px;font-weight:700;font-family:'Playfair Display',serif;line-height:1}
   .stat .k{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.02em}
@@ -267,7 +267,8 @@
     </div>
 
     <div class="stats">
-      <div class="stat"><div class="v" id="st-total">0</div><div class="k">Guests (in view)</div></div>
+      <div class="stat"><div class="v" id="st-total">0</div><div class="k">Guests invited</div></div>
+      <div class="stat"><div class="v" id="st-inv">0</div><div class="k">Seats invited</div></div>
       <div class="stat attending"><div class="v" id="st-att">0</div><div class="k">Seats confirmed</div></div>
       <div class="stat declined"><div class="v" id="st-dec">0</div><div class="k">Declined</div></div>
       <div class="stat"><div class="v" id="st-pend">0</div><div class="k">Awaiting reply</div></div>
@@ -520,16 +521,19 @@ function setFilter(side){
 }
 
 function renderStats(){
+  const seatsOf = arr => arr.reduce((a,g) => a + (g.max_seats||0), 0);
   const bride = GUESTS.filter(g => (g.side||'bride') === 'bride');
   const groom = GUESTS.filter(g => (g.side||'bride') === 'groom');
-  document.getElementById('split-bride').textContent = `${bride.length} ${bride.length===1?'guest':'guests'}`;
-  document.getElementById('split-groom').textContent = `${groom.length} ${groom.length===1?'guest':'guests'}`;
+  document.getElementById('split-bride').textContent = `${bride.length} ${bride.length===1?'guest':'guests'} · ${seatsOf(bride)} seats`;
+  document.getElementById('split-groom').textContent = `${groom.length} ${groom.length===1?'guest':'guests'} · ${seatsOf(groom)} seats`;
 
   const view = FILTER === 'all' ? GUESTS : GUESTS.filter(g => (g.side||'bride') === FILTER);
+  const invited = seatsOf(view);
   const seats = view.filter(g => g.rsvp === true).reduce((a,g) => a + (g.seats_confirmed||0), 0);
   const declined = view.filter(g => g.rsvp === false).length;
   const pending = view.filter(g => g.rsvp === null).length;
   document.getElementById('st-total').textContent = view.length;
+  document.getElementById('st-inv').textContent = invited;
   document.getElementById('st-att').textContent = seats;
   document.getElementById('st-dec').textContent = declined;
   document.getElementById('st-pend').textContent = pending;

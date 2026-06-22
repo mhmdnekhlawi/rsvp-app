@@ -206,6 +206,8 @@
   .maps-link{display:inline-block;margin-top:7px;font-size:13px;font-weight:600;color:var(--fuchsia);text-decoration:none}
   .maps-link:hover{text-decoration:underline}
   .details-soon{color:var(--muted);font-size:14px;text-align:center;margin:18px 0 0;line-height:1.5}
+  .swatches{display:flex;gap:7px;margin-top:9px}
+  .swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.06);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 
   .empty{text-align:center;padding:34px;color:var(--muted)}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s ease;z-index:50}
@@ -348,6 +350,8 @@
 const SUPABASE_URL = 'https://vlimnmitchnpftjznfli.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsaW1ubWl0Y2hucGZ0anpuZmxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODY0MTYsImV4cCI6MjA5NzY2MjQxNn0.vF4-SJBSwAe30YG2v-Ny65KjDH4TA5S-QIhDhMq5AM8';
 const PUBLIC_DOMAIN = 'https://rsvp-app-theta-puce.vercel.app';
+// Dress-code colour story (from the moodboard). Edit these hex values to restyle the swatches.
+const DRESS_PALETTE = ['#D04E46','#EC9660','#E9C454','#96A842','#76844E','#A494C4'];
 
 /* ============================================================
    SUPABASE REST HELPER
@@ -527,7 +531,10 @@ function buildDetails(){
     rows.push(`<div class="detail-row"><span class="dicon">📍</span><div><div class="dlabel">Where</div>${v}</div></div>`);
   }
   if (when) rows.push(`<div class="detail-row"><span class="dicon">🗓️</span><div><div class="dlabel">When</div><div class="dval">${escapeHtml(when)}</div></div></div>`);
-  if (dress) rows.push(`<div class="detail-row"><span class="dicon">👗</span><div><div class="dlabel">Dress code</div><div class="dval">${escapeHtml(dress)}</div></div></div>`);
+  if (dress){
+    const sw = DRESS_PALETTE.map(c => `<span class="swatch" style="background:${c}"></span>`).join('');
+    rows.push(`<div class="detail-row"><span class="dicon">👗</span><div><div class="dlabel">Dress code</div><div class="dval">${escapeHtml(dress)}</div><div class="swatches">${sw}</div></div></div>`);
+  }
 
   if (!rows.length){
     return `${imgHtml}<p class="details-soon">Full details are coming soon — we'll share the venue, timing, and dress code closer to the day. 💗</p>`;

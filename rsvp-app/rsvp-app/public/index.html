@@ -191,6 +191,22 @@
   .del-btn:hover{border-color:var(--no);color:var(--no)}
   .copy-mobile{display:none}
 
+  /* ---------- Guest details after RSVP ---------- */
+  .note{margin:16px auto 8px;max-width:340px;font-size:13.5px;color:var(--muted);background:var(--cream);border:1px solid var(--line);border-radius:14px;padding:12px 14px;line-height:1.5;text-align:center}
+  .detail-img{height:150px;border-radius:18px;background-size:cover;background-position:center;margin-top:22px;border:1px solid var(--line)}
+  .detail-deco{height:96px;border-radius:18px;margin-top:22px;background:linear-gradient(135deg,var(--blush),var(--peach));display:flex;align-items:center;justify-content:center;color:var(--fuchsia);font-size:30px}
+  .details{margin-top:20px;border-top:1px solid var(--line);padding-top:18px;text-align:left}
+  .details-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:500;margin:0 0 8px;text-align:center}
+  .detail-row{display:flex;gap:13px;align-items:flex-start;padding:12px 0}
+  .detail-row + .detail-row{border-top:1px solid var(--line)}
+  .dicon{font-size:18px;flex:0 0 auto;width:24px;text-align:center;line-height:1.4}
+  .dlabel{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:3px}
+  .dval{font-size:15px;font-weight:600;color:var(--ink)}
+  .dsub{font-size:13.5px;font-weight:400;color:var(--muted);margin-top:2px}
+  .maps-link{display:inline-block;margin-top:7px;font-size:13px;font-weight:600;color:var(--fuchsia);text-decoration:none}
+  .maps-link:hover{text-decoration:underline}
+  .details-soon{color:var(--muted);font-size:14px;text-align:center;margin:18px 0 0;line-height:1.5}
+
   .empty{text-align:center;padding:34px;color:var(--muted)}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s ease;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -198,9 +214,10 @@
   /* ---------- Settings modal ---------- */
   .modal-bg{position:fixed;inset:0;background:rgba(61,18,38,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:40}
   .modal-bg.show{display:flex}
-  .modal{background:#fff;border-radius:22px;padding:28px;width:100%;max-width:420px;box-shadow:var(--shadow)}
+  .modal{background:#fff;border-radius:22px;padding:28px;width:100%;max-width:420px;box-shadow:var(--shadow);max-height:88vh;overflow-y:auto}
   .modal h3{font-family:'Playfair Display',serif;font-weight:500;font-size:22px;margin:0 0 18px}
   .modal .field{margin-bottom:14px}
+  .modal .set-divider{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
   .modal-actions{display:flex;gap:10px;margin-top:8px}
 
   @media(max-width:680px){
@@ -303,7 +320,17 @@
     <h3>Event settings</h3>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Event name</label><input id="set-name"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Occasion (shown under the names)</label><input id="set-occasion" placeholder="e.g. engagement celebration"/></div>
-    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Date / details (shown to guests)</label><input id="set-date" placeholder="e.g. 12 September 2026 · Cairo"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Date / details (shown to guests)</label><input id="set-date" placeholder="e.g. 12 September 2026"/></div>
+
+    <div class="set-divider">Shown to guests who say yes</div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Venue name</label><input id="set-venue" placeholder="e.g. The Nile Ritz-Carlton"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Address</label><input id="set-address" placeholder="e.g. 1113 Corniche El Nil, Cairo"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Google Maps link (optional)</label><input id="set-map" placeholder="https://maps.google.com/..."/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Time</label><input id="set-time" placeholder="e.g. Reception 7:00 PM"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Dress code</label><input id="set-dress" placeholder="e.g. Formal · Black tie"/></div>
+    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Photo link (optional)</label><input id="set-image" placeholder="https://...image.jpg"/></div>
+
+    <div class="set-divider">Access</div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Host password</label><input id="set-pass" type="text"/></div>
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="saveSettings()">Save changes</button>
@@ -462,6 +489,7 @@ function renderThanks(guest){
         <div class="check">♡</div>
         <h3>We'll miss you</h3>
         <p>Thank you for letting us know, ${escapeHtml(firstName(guest.name))}. You'll be in our hearts on the day.</p>
+        <div class="note">If your plans change, you can update your response any time — we'd love to celebrate with you.</div>
         <button class="edit-link" onclick="editResponse()">Change my response</button>
       </div>`;
   } else {
@@ -470,10 +498,41 @@ function renderThanks(guest){
       <div class="thanks">
         <div class="check">✓</div>
         <h3>You're confirmed!</h3>
-        <p>We've saved <strong>${s} ${s===1?'seat':'seats'}</strong> for you, ${escapeHtml(firstName(guest.name))}. See you in Cairo 💗</p>
+        <p>We've saved <strong>${s} ${s===1?'seat':'seats'}</strong> for you, ${escapeHtml(firstName(guest.name))}. See you there 💗</p>
         <button class="edit-link" onclick="editResponse()">Change my response</button>
-      </div>`;
+      </div>
+      ${buildDetails()}`;
   }
+}
+
+function buildDetails(){
+  const c = CONFIG || {};
+  const venue = (c.venue || '').trim();
+  const address = (c.venue_address || '').trim();
+  const map = (c.map_url || '').trim();
+  const when = [(c.event_date || '').trim(), (c.event_time || '').trim()].filter(Boolean).join(' · ');
+  const dress = (c.dress_code || '').trim();
+  const img = (c.hero_image_url || '').trim();
+  const isUrl = u => /^https?:\/\//i.test(u);
+
+  const imgHtml = isUrl(img)
+    ? `<div class="detail-img" style="background-image:url('${escapeAttr(img)}')"></div>`
+    : `<div class="detail-deco">♡</div>`;
+
+  const rows = [];
+  if (venue || address){
+    let v = `<div class="dval">${escapeHtml(venue || 'Venue')}</div>`;
+    if (address) v += `<div class="dsub">${escapeHtml(address)}</div>`;
+    if (isUrl(map)) v += `<a class="maps-link" href="${escapeAttr(map)}" target="_blank" rel="noopener">Open in Maps ↗</a>`;
+    rows.push(`<div class="detail-row"><span class="dicon">📍</span><div><div class="dlabel">Where</div>${v}</div></div>`);
+  }
+  if (when) rows.push(`<div class="detail-row"><span class="dicon">🗓️</span><div><div class="dlabel">When</div><div class="dval">${escapeHtml(when)}</div></div></div>`);
+  if (dress) rows.push(`<div class="detail-row"><span class="dicon">👗</span><div><div class="dlabel">Dress code</div><div class="dval">${escapeHtml(dress)}</div></div></div>`);
+
+  if (!rows.length){
+    return `${imgHtml}<p class="details-soon">Full details are coming soon — we'll share the venue, timing, and dress code closer to the day. 💗</p>`;
+  }
+  return `${imgHtml}<div class="details"><h4 class="details-title">The details</h4>${rows.join('')}</div>`;
 }
 function editResponse(){
   SELECTED = CURRENT_GUEST.rsvp === false ? 0 : (CURRENT_GUEST.seats_confirmed || null);
@@ -616,21 +675,43 @@ function copyLink(link){
    SETTINGS
    ============================================================ */
 function openSettings(){
-  document.getElementById('set-name').value = CONFIG.event_name || '';
-  document.getElementById('set-occasion').value = CONFIG.occasion || 'engagement celebration';
-  document.getElementById('set-date').value = CONFIG.event_date || '';
-  document.getElementById('set-pass').value = CONFIG.host_password || '';
+  const v = (id, val) => document.getElementById(id).value = val || '';
+  v('set-name', CONFIG.event_name);
+  v('set-occasion', CONFIG.occasion || 'engagement celebration');
+  v('set-date', CONFIG.event_date);
+  v('set-venue', CONFIG.venue);
+  v('set-address', CONFIG.venue_address);
+  v('set-map', CONFIG.map_url);
+  v('set-time', CONFIG.event_time);
+  v('set-dress', CONFIG.dress_code);
+  v('set-image', CONFIG.hero_image_url);
+  v('set-pass', CONFIG.host_password);
   document.getElementById('settings-modal').classList.add('show');
 }
 function closeSettings(){ document.getElementById('settings-modal').classList.remove('show'); }
 async function saveSettings(){
-  const event_name = document.getElementById('set-name').value.trim() || 'My Event';
-  const event_date = document.getElementById('set-date').value.trim();
-  const occasion = document.getElementById('set-occasion').value.trim();
-  const host_password = document.getElementById('set-pass').value.trim() || 'changeme123';
+  const val = id => document.getElementById(id).value.trim();
+  const event_name = val('set-name') || 'My Event';
+  const event_date = val('set-date');
+  const host_password = val('set-pass') || 'changeme123';
   const payload = { event_name, event_date, host_password };
-  // only send occasion if the column exists, so save never fails before the migration
-  if ('occasion' in CONFIG) payload.occasion = occasion;
+
+  // optional columns: only send the ones that exist in the DB, so save never fails pre-migration
+  const optional = {
+    occasion: val('set-occasion'),
+    venue: val('set-venue'),
+    venue_address: val('set-address'),
+    map_url: val('set-map'),
+    event_time: val('set-time'),
+    dress_code: val('set-dress'),
+    hero_image_url: val('set-image')
+  };
+  let needsMigration = false;
+  for (const [k, value] of Object.entries(optional)){
+    if (k in CONFIG) payload[k] = value;
+    else if (value) needsMigration = true;
+  }
+
   try {
     await sb('event_config?id=eq.1', {
       method: 'PATCH',
@@ -640,7 +721,9 @@ async function saveSettings(){
     CONFIG = { ...CONFIG, ...payload };
     document.getElementById('dash-event').textContent = event_name;
     closeSettings();
-    toast('occasion' in CONFIG ? 'Settings saved.' : 'Saved. (Add the occasion column to edit the occasion text.)');
+    toast(needsMigration
+      ? 'Saved — but run the database update so venue/dress details persist.'
+      : 'Settings saved.');
   } catch(e){ console.error(e); toast('Could not save settings.'); }
 }
 
@@ -650,6 +733,7 @@ async function saveSettings(){
 function genToken(){ return Math.random().toString(36).slice(2, 10); }
 function firstName(n){ return (n||'').trim().split(/\s+/)[0] || n; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/'/g,'%27').replace(/"/g,'%22').replace(/</g,'%3C').replace(/>/g,'%3E'); }
 
 boot();
 </script>

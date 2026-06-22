@@ -141,8 +141,11 @@
   @media (max-width: 560px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
     .add-row { grid-template-columns: 1fr 70px auto; }
+    table th:nth-child(3), table td:nth-child(3) { display: none; }
     table th:nth-child(4), table td:nth-child(4) { display: none; }
+    .mobile-copy { display: inline-flex !important; }
   }
+  .mobile-copy { display: none; }
 </style>
 </head>
 <body>
@@ -343,7 +346,7 @@ function renderGuests() {
     const seats = g.rsvp === true ? g.seats_confirmed : '—';
     const link = `${origin}?id=${g.token}`;
     return `<tr>
-      <td style="font-weight:500">${g.name}</td>
+      <td style="font-weight:500">${g.name}<br><button class="btn btn-sm mobile-copy" style="margin-top:5px;font-size:11px;color:var(--muted)" onclick="copyLink('${link}')">⎘ Copy link</button></td>
       <td>${badge}</td>
       <td>${seats}</td>
       <td><div class="link-row"><span class="mono">${g.token}</span><button class="btn btn-icon btn-sm" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>

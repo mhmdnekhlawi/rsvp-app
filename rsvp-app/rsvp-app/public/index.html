@@ -233,6 +233,46 @@
     th.col-link,td.col-link{display:none}
     .copy-mobile{display:inline-flex;margin-top:8px}
   }
+
+  /* ---------- Seating ---------- */
+  .seat-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .seat-top h3{margin:0}
+  .seat-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .seat-sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .unseated{background:var(--cream);border:1.5px dashed var(--line);border-radius:16px;padding:13px;margin-bottom:16px}
+  .unseated .u-t{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:9px}
+  .chiprow{display:flex;flex-wrap:wrap;gap:6px}
+  .gchip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);
+         border-radius:999px;padding:5px 10px;font-size:13px;color:var(--ink)}
+  .gchip .s{color:var(--muted);font-size:11.5px}
+  .gchip button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 1px}
+  .gchip button:hover{color:var(--no)}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:14px}
+  .tcard{border:1.5px solid var(--line);border-radius:18px;padding:14px;background:#fff}
+  .tcard.full{border-color:var(--ok)}
+  .tcard.over{border-color:var(--no)}
+  .tc-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .tc-top h4{margin:0;font-size:15.5px;font-weight:700}
+  .tc-n{font-size:12.5px;color:var(--muted)}
+  .tc-n.over{color:var(--no);font-weight:700}
+  .tc-dim{text-align:center;font-size:11px;color:var(--muted);margin:-4px 0 8px}
+  .tc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:999px}
+  .stepper button{border:0;background:none;width:24px;padding:3px 0;color:var(--muted);font-size:15px;cursor:pointer;font-family:inherit}
+  .stepper button:hover{color:var(--fuchsia)}
+  .stepper span{font-size:12px;min-width:50px;text-align:center}
+  .shapesel{display:flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
+  .shapesel button{border:0;background:none;padding:4px 11px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit}
+  .shapesel button.on{background:var(--ink);color:#fff}
+  .tc-add{width:100%;margin-top:9px;padding:8px 10px;border-radius:12px;border:1.5px solid var(--line);
+          background:var(--cream);font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer}
+  .tc-add:focus{border-color:var(--fuchsia);outline:none}
+  .cellsel{padding:6px 8px;border-radius:10px;border:1.5px solid var(--line);background:#fff;
+           font-family:inherit;font-size:12.5px;color:var(--ink);max-width:150px}
+  .cellsel:focus{border-color:var(--fuchsia);outline:none}
+  .seat-empty{text-align:center;color:var(--muted);font-size:14px;padding:26px 12px;
+              border:1.5px dashed var(--line);border-radius:16px}
+  @media(max-width:760px){ th.col-seat,td.col-seat{display:none} }
 </style>
 </head>
 <body>
@@ -281,6 +321,7 @@
     <div class="dash-top">
       <h1 class="dash-title"><span class="dot"></span><span id="dash-event">My Event</span></h1>
       <div class="dash-actions">
+        <button class="btn btn-ghost btn-sm" onclick="toggleSeating()" id="seat-toggle">🪑 Seating</button>
         <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙ Settings</button>
         <button class="btn btn-ghost btn-sm" onclick="logout()">Log out</button>
       </div>
@@ -317,6 +358,20 @@
         <button class="tab" data-side="groom" onclick="setFilter('groom')">Groom's side</button>
       </div>
       <div id="table-wrap"></div>
+    </div>
+
+    <div class="panel" id="seating-panel" hidden>
+      <div class="seat-top">
+        <h3>Seating plan</h3>
+        <div class="seat-actions">
+          <button class="btn btn-ghost btn-sm" onclick="autoSeat(false)">Seat unplaced guests</button>
+          <button class="btn btn-ghost btn-sm" onclick="autoSeat(true)">Rebuild all</button>
+          <button class="btn btn-ghost btn-sm" onclick="addTable()">+ Add table</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportSeating()">⬇ Export CSV</button>
+        </div>
+      </div>
+      <p class="seat-sub" id="seat-sub"></p>
+      <div id="seat-body"></div>
     </div>
   </div>
 </div>
@@ -584,12 +639,14 @@ async function openDashboard(){
   if (!CONFIG) CONFIG = await getConfig();
   document.getElementById('dash-event').textContent = CONFIG.event_name || 'My Event';
   show('host');
+  try { TABLES = await getTables() || []; } catch(e){ console.error(e); TABLES = []; }
   await refreshGuests();
 }
 async function refreshGuests(){
   try { GUESTS = await getGuests() || []; } catch(e){ console.error(e); GUESTS = []; }
   renderStats();
   renderGuests();
+  renderSeating();
 }
 
 function setFilter(side){
@@ -644,12 +701,14 @@ function renderGuests(){
       <td><span class="side-badge ${side}">${side==='bride'?"Bride's":"Groom's"}</span></td>
       <td>${g.max_seats}</td>
       <td><span class="status ${sclass}"><span class="d"></span>${status}</span></td>
+      <td class="col-seat">${circleSelect(g)}</td>
+      <td class="col-seat">${tableSelect(g)}</td>
       <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn wa" title="Send on WhatsApp" onclick="sendWhatsApp('${g.id}')">➤</button><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
       <td><button class="icon-btn del-btn" title="Remove guest" onclick="removeGuest('${g.id}','${escapeHtml(g.name)}')">🗑</button></td>
     </tr>`;
   });
   wrap.innerHTML = `<table>
-    <thead><tr><th>Guest</th><th>Side</th><th>Max</th><th>Status</th><th class="col-link">RSVP link</th><th></th></tr></thead>
+    <thead><tr><th>Guest</th><th>Side</th><th>Max</th><th>Status</th><th class="col-seat">Circle</th><th class="col-seat">Table</th><th class="col-link">RSVP link</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 
@@ -780,6 +839,267 @@ function genToken(){ return Math.random().toString(36).slice(2, 10); }
 function firstName(n){ return (n||'').trim().split(/\s+/)[0] || n; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s){ return String(s).replace(/'/g,'%27').replace(/"/g,'%22').replace(/</g,'%3C').replace(/>/g,'%3E'); }
+
+
+/* ============================================================
+   SEATING PLAN
+   Columns used:  guests.circle (text), guests.table_no (int)
+   Table:         tables(table_no int pk, seats int, shape text)
+   ============================================================ */
+let TABLES = [];
+const SEAT_SPACING = 65;               // cm of table edge per guest
+const DEFAULT_SEATS = 10;
+
+const getTables = () => sb('tables?select=*&order=table_no.asc');
+const confirmed = () => GUESTS.filter(g => g.rsvp === true && (g.seats_confirmed || 0) > 0);
+const circleOf = g => g.circle || (g.side === 'groom' ? "Groom's side" : "Bride's side");
+const seatsAt = no => confirmed().filter(g => g.table_no === no).reduce((a, g) => a + (g.seats_confirmed || 0), 0);
+const capOf = no => { const t = TABLES.find(x => x.table_no === no); return t ? (t.seats || DEFAULT_SEATS) : DEFAULT_SEATS; };
+const shapeOf = no => { const t = TABLES.find(x => x.table_no === no); return t ? (t.shape || 'round') : 'round'; };
+const unplaced = () => confirmed().filter(g => !g.table_no);
+
+function allCircles(){
+  const s = new Set();
+  GUESTS.forEach(g => { if (g.circle) s.add(g.circle); });
+  return [...s].sort((a, b) => a.localeCompare(b));
+}
+
+function toggleSeating(){
+  const p = document.getElementById('seating-panel');
+  p.hidden = !p.hidden;
+  document.getElementById('seat-toggle').textContent = p.hidden ? '🪑 Seating' : '✕ Close seating';
+  if (!p.hidden){ renderSeating(); p.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+
+/* ---------- writes ---------- */
+async function patchGuest(id, patch){
+  await sb(`guests?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  const g = GUESTS.find(x => String(x.id) === String(id));
+  if (g) Object.assign(g, patch);
+}
+async function setCircle(id, val){
+  if (val === '__new'){
+    const n = prompt('Name the new circle — e.g. Cousins, Work, School friends');
+    if (!n || !n.trim()){ renderGuests(); return; }
+    val = n.trim();
+  }
+  try { await patchGuest(id, { circle: val || null }); renderGuests(); renderSeating(); }
+  catch(e){ console.error(e); toast('Could not save — add the "circle" column first.'); }
+}
+async function setTable(id, val){
+  const no = val === '' ? null : parseInt(val, 10);
+  try { await patchGuest(id, { table_no: no }); renderGuests(); renderSeating(); }
+  catch(e){ console.error(e); toast('Could not save — add the "table_no" column first.'); }
+}
+function seatHere(sel, no){ const id = sel.value; sel.value = ''; if (id) setTable(id, no); }
+
+async function upsertTable(no, patch){
+  const t = TABLES.find(x => x.table_no === no);
+  if (t){
+    Object.assign(t, patch);
+    await sb(`tables?table_no=eq.${no}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  } else {
+    const row = { table_no: no, seats: DEFAULT_SEATS, shape: 'round', ...patch };
+    TABLES.push(row);
+    await sb('tables', { method: 'POST', body: JSON.stringify(row) });
+  }
+}
+async function addTable(){
+  const no = TABLES.reduce((a, t) => Math.max(a, t.table_no), 0) + 1;
+  try { await upsertTable(no, {}); renderSeating(); }
+  catch(e){ console.error(e); toast('Could not add — create the "tables" table first.'); }
+}
+async function tweakTable(no, patch){
+  try { await upsertTable(no, patch); renderSeating(); } catch(e){ console.error(e); toast('Could not save that.'); }
+}
+async function dropTable(no){
+  if (!confirm(`Remove table ${no}? Anyone seated there goes back to unplaced.`)) return;
+  try {
+    for (const g of confirmed().filter(x => x.table_no === no)) await patchGuest(g.id, { table_no: null });
+    await sb(`tables?table_no=eq.${no}`, { method: 'DELETE' });
+    TABLES = TABLES.filter(t => t.table_no !== no);
+    renderGuests(); renderSeating();
+  } catch(e){ console.error(e); toast('Could not remove that table.'); }
+}
+
+/* ---------- auto-arrange ---------- */
+async function autoSeat(rebuild){
+  try {
+    if (rebuild){
+      if (!confirm('Clear every table and start again?')) return;
+      for (const g of confirmed().filter(x => x.table_no)) await patchGuest(g.id, { table_no: null });
+    }
+    const todo = unplaced();
+    if (!todo.length){ toast('Everyone is already seated.'); return; }
+
+    const byCircle = {};
+    todo.forEach(g => { (byCircle[circleOf(g)] = byCircle[circleOf(g)] || []).push(g); });
+
+    for (const circle of Object.keys(byCircle)){
+      for (const g of byCircle[circle]){
+        const need = g.seats_confirmed || 1;
+        const nos = TABLES.map(t => t.table_no);
+        // first choice: a table that already holds this circle and has room
+        let target = nos.find(no =>
+          confirmed().some(x => x.table_no === no && circleOf(x) === circle) && capOf(no) - seatsAt(no) >= need);
+        // second: any table with room
+        if (target === undefined) target = nos.find(no => capOf(no) - seatsAt(no) >= need);
+        // otherwise open a new one
+        if (target === undefined){
+          target = TABLES.reduce((a, t) => Math.max(a, t.table_no), 0) + 1;
+          await upsertTable(target, {});
+        }
+        await patchGuest(g.id, { table_no: target });
+      }
+    }
+    renderGuests(); renderSeating();
+    toast('Tables built.');
+  } catch(e){ console.error(e); toast('Could not build — check the DB update ran.'); }
+}
+
+/* ---------- drawing ---------- */
+function rectSplit(n){ const heads = n >= 6 ? (n % 2 === 0 ? 2 : 1) : 0, sides = n - heads;
+  return { heads, top: Math.ceil(sides / 2), bottom: Math.floor(sides / 2) }; }
+function tableSize(cap, shape){
+  const s = SEAT_SPACING / 100;
+  if (shape === 'round') return Math.max(1.2, cap * s / Math.PI).toFixed(2) + ' m across';
+  const r = rectSplit(cap);
+  return Math.max(1.2, Math.max(r.top, r.bottom) * s).toFixed(2) + ' × 0.90 m';
+}
+const seatDot = (x, y, on, over) =>
+  `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${on ? (over ? '#C2536B' : '#E11584') : 'none'}" stroke="${on ? 'none' : '#F0D9E4'}" stroke-width="1.4"/>`;
+function tableSvg(taken, cap, shape){
+  const n = Math.max(cap, taken), cx = 76, cy = 58;
+  let d = '', body = '';
+  if (shape === 'round'){
+    const ring = 42, R = n > 10 ? 23 : 25;
+    for (let i = 0; i < n; i++){
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      d += seatDot(cx + Math.cos(a) * ring, cy + Math.sin(a) * ring, i < taken, i >= cap);
+    }
+    body = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#F0D9E4" stroke-width="1.6"/>`;
+  } else {
+    const r = rectSplit(n), per = Math.max(r.top, r.bottom);
+    const w = Math.min(110, Math.max(46, per * 17 + 16)), h = 28, L = cx - w / 2, T = cy - h / 2;
+    let k = 0; const put = (x, y) => { d += seatDot(x, y, k < taken, k >= cap); k++; };
+    for (let i = 0; i < r.top; i++) put(L + w * (i + .5) / r.top, T - 9);
+    if (r.heads > 0) put(L + w + 10, cy);
+    for (let i = r.bottom - 1; i >= 0; i--) put(L + w * (i + .5) / r.bottom, T + h + 9);
+    if (r.heads > 1) put(L - 10, cy);
+    body = `<rect x="${L}" y="${T}" width="${w}" height="${h}" rx="4" fill="none" stroke="#F0D9E4" stroke-width="1.6"/>`;
+  }
+  return `<svg width="152" height="116" viewBox="0 0 152 116" style="display:block;margin:0 auto 6px">${body}${d}</svg>`;
+}
+
+/* ---------- dropdowns in the guest table ---------- */
+function circleSelect(g){
+  const cur = g.circle || '';
+  const opts = allCircles().map(c =>
+    `<option value="${escapeAttr(c)}"${c === cur ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+  return `<select class="cellsel" onchange="setCircle('${g.id}', this.value)">
+      <option value=""${cur ? '' : ' selected'}>— ${g.side === 'groom' ? "Groom's" : "Bride's"} —</option>
+      ${opts}<option value="__new">+ New circle…</option></select>`;
+}
+function tableSelect(g){
+  if (g.rsvp !== true) return '<span style="color:var(--muted);font-size:12px">—</span>';
+  const cur = g.table_no || '';
+  const opts = TABLES.map(t => {
+    const free = capOf(t.table_no) - seatsAt(t.table_no) + (g.table_no === t.table_no ? (g.seats_confirmed || 0) : 0);
+    return `<option value="${t.table_no}"${t.table_no === g.table_no ? ' selected' : ''}>Table ${t.table_no} · ${free} free</option>`;
+  }).join('');
+  return `<select class="cellsel" onchange="setTable('${g.id}', this.value)">
+      <option value=""${cur ? '' : ' selected'}>Not seated</option>${opts}</select>`;
+}
+
+/* ---------- seating view ---------- */
+function renderSeating(){
+  const panel = document.getElementById('seating-panel');
+  if (!panel || panel.hidden) return;
+  const body = document.getElementById('seat-body');
+  const sub = document.getElementById('seat-sub');
+  const conf = confirmed();
+  const heads = conf.reduce((a, g) => a + (g.seats_confirmed || 0), 0);
+  const laid = TABLES.reduce((a, t) => a + (t.seats || DEFAULT_SEATS), 0);
+  const left = unplaced();
+
+  sub.textContent = `${heads} confirmed seats · ${TABLES.length} table${TABLES.length === 1 ? '' : 's'} · ${laid} seats laid out`
+    + (left.length ? ` · ${left.length} guest${left.length === 1 ? '' : 's'} not placed yet` : ' · everyone seated')
+    + `. Sizes assume ${SEAT_SPACING} cm per guest.`;
+
+  if (!conf.length){
+    body.innerHTML = '<div class="seat-empty">No confirmed replies yet. Once guests start saying yes they show up here.</div>';
+    return;
+  }
+
+  let html = '';
+  if (left.length){
+    html += `<div class="unseated"><div class="u-t">Not placed yet</div><div class="chiprow">` +
+      left.map(g => `<span class="gchip">${escapeHtml(g.name)} <span class="s">${g.seats_confirmed}</span></span>`).join('') +
+      `</div></div>`;
+  }
+
+  if (!TABLES.length){
+    html += '<div class="seat-empty">No tables yet. Hit “Seat unplaced guests” and they’ll be created for you, or add them one by one.</div>';
+    body.innerHTML = html; return;
+  }
+
+  html += '<div class="tgrid">';
+  TABLES.forEach(t => {
+    const no = t.table_no, cap = capOf(no), shape = shapeOf(no), taken = seatsAt(no);
+    const here = conf.filter(g => g.table_no === no);
+    const circles = [...new Set(here.map(circleOf))].join(' · ');
+    const free = cap - taken;
+    const pool = left.filter(g => (g.seats_confirmed || 0) <= free);
+    html += `<div class="tcard ${taken > cap ? 'over' : (free === 0 ? 'full' : '')}">
+      <div class="tc-top"><h4>Table ${no}</h4>
+        <span class="tc-n ${taken > cap ? 'over' : ''}">${taken}/${cap}${taken > cap ? ' · over' : ''}</span></div>
+      ${tableSvg(taken, cap, shape)}
+      <div class="tc-dim">${tableSize(cap, shape)}</div>
+      <div class="tc-ctl">
+        <span class="stepper">
+          <button onclick="tweakTable(${no},{seats:${Math.max(2, cap - 1)}})">−</button>
+          <span>${cap} seats</span>
+          <button onclick="tweakTable(${no},{seats:${Math.min(24, cap + 1)}})">+</button>
+        </span>
+        <span class="shapesel">
+          <button class="${shape === 'round' ? 'on' : ''}" onclick="tweakTable(${no},{shape:'round'})">Round</button>
+          <button class="${shape !== 'round' ? 'on' : ''}" onclick="tweakTable(${no},{shape:'long'})">Long</button>
+        </span>
+        <button class="gchip" style="cursor:pointer" onclick="dropTable(${no})">🗑</button>
+      </div>
+      ${circles ? `<div class="tc-dim" style="margin:0 0 8px">${escapeHtml(circles)}</div>` : ''}
+      <div class="chiprow">` +
+      here.map(g => `<span class="gchip">${escapeHtml(g.name)} <span class="s">${g.seats_confirmed}</span>
+          <button title="Remove from table" onclick="setTable('${g.id}','')">×</button></span>`).join('') +
+      `</div>
+      <select class="tc-add" onchange="seatHere(this, ${no})">
+        <option value="">+ Seat someone here…</option>
+        ${pool.map(g => `<option value="${g.id}">${escapeHtml(g.name)} · ${g.seats_confirmed} seat${g.seats_confirmed === 1 ? '' : 's'}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+/* ---------- export ---------- */
+function exportSeating(){
+  const rows = [['Guest', 'Circle', 'Side', 'Seats', 'Table', 'Shape', 'Table seats', 'Phone']];
+  confirmed().forEach(g => rows.push([
+    g.name, circleOf(g), g.side === 'groom' ? "Groom's" : "Bride's", g.seats_confirmed,
+    g.table_no ? 'Table ' + g.table_no : 'Not seated',
+    g.table_no ? (shapeOf(g.table_no) === 'round' ? 'Round' : 'Long') : '',
+    g.table_no ? capOf(g.table_no) : '', g.phone || ''
+  ]));
+  const csv = rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'seating-plan.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('Downloaded — opens straight in Excel.');
+}
 
 boot();
 </script>

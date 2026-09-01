@@ -41,8 +41,9 @@
     <div class="login-card">
       <div class="lock">🔒</div>
       <h2>Host access</h2>
-      <p>Enter your password to manage the guest list.</p>
-      <div class="field"><input id="login-pass" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <p>Sign in to manage the guest list.</p>
+      <div class="field"><input id="login-email" type="email" autocomplete="username" placeholder="Email" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="field"><input id="login-pass" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
       <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()">Open dashboard</button>
       <p id="login-err" style="color:var(--no);font-size:13px;margin:12px 0 0;display:none">Wrong password — try again.</p>
     </div>
@@ -200,7 +201,8 @@
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Default country code (digits only)</label><input id="set-cc" placeholder="e.g. 20 for Egypt, 971 for UAE"/></div>
 
     <div class="set-divider">Access</div>
-    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Host password</label><input id="set-pass" type="text"/></div>
+    <p style="font-size:12.5px;color:var(--muted);margin:0">Your login is a Supabase account now. Change the email or password under
+      <b>Authentication → Users</b> in your Supabase project.</p>
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="saveSettings()">Save changes</button>
       <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
@@ -229,21 +231,25 @@ function show(id){
 }
 
 async function boot(){
-  try { CONFIG = await getConfig(); } catch(e){ console.error(e); }
   const id = new URLSearchParams(location.search).get('id');
-  if (id) {
-    await loadGuestView(id);
-  } else if (localStorage.getItem('rsvp_host') === '1') {
-    await openDashboard();
-  } else {
-    show('login');
+  if (id) { await loadGuestView(id); return; }
+  if (isHost()){
+    try { await openDashboard(); return; }
+    catch(e){ console.error(e); logout(); return; }
   }
+  show('login');
 }
 
 /* ============================================================
    GUEST VIEW
    ============================================================ */
 async function loadGuestView(token){
+  let guest = null;
+  try {
+    const res = await rpc('get_invite', { p_token: token });
+    if (res && res.guest){ guest = res.guest; CONFIG = res.event || {}; }
+  } catch(e){ console.error(e); }
+
   // names from config event_name "Mohamad & Marya"
   if (CONFIG && CONFIG.event_name && CONFIG.event_name.includes('&')) {
     const [a,b] = CONFIG.event_name.split('&').map(s => s.trim().toLowerCase());
@@ -253,8 +259,6 @@ async function loadGuestView(token){
   if (CONFIG && CONFIG.event_date) document.getElementById('g-meta').textContent = CONFIG.event_date;
   document.getElementById('g-occasion').textContent = (CONFIG && CONFIG.occasion) || 'engagement celebration';
 
-  let guest;
-  try { guest = await getGuestByToken(token); } catch(e){ console.error(e); }
   show('guest');
 
   if (!guest) {
@@ -307,10 +311,10 @@ async function submitRSVP(){
   const btn = document.getElementById('confirm-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    await sb(`guests?token=eq.${encodeURIComponent(CURRENT_GUEST.token)}`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ rsvp: attending, seats_confirmed: attending ? SELECTED : null })
+    await rpc('submit_rsvp', {
+      p_token: CURRENT_GUEST.token,
+      p_going: attending,
+      p_seats: attending ? SELECTED : null
     });
     CURRENT_GUEST.rsvp = attending;
     CURRENT_GUEST.seats_confirmed = attending ? SELECTED : null;
@@ -388,20 +392,21 @@ function editResponse(){
    HOST LOGIN
    ============================================================ */
 async function doLogin(){
-  const pass = document.getElementById('login-pass').value.trim();
-  const err = document.getElementById('login-err');
-  if (!CONFIG) { try { CONFIG = await getConfig(); } catch(e){ console.error(e); } }
-  if (!CONFIG){
-    err.textContent = "Couldn't reach the database — check your connection and refresh.";
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-err');
+  if (!email || !pass){
+    err.textContent = 'Enter your email and password.';
     err.style.display = 'block';
     return;
   }
-  if (pass === String(CONFIG.host_password || '').trim()){
-    localStorage.setItem('rsvp_host','1');
+  try {
+    await signIn(email, pass);
     err.style.display = 'none';
     await openDashboard();
-  } else {
-    err.textContent = 'Wrong password — try again.';
+  } catch(e){
+    console.error(e);
+    err.textContent = 'That email and password did not work.';
     err.style.display = 'block';
   }
 }
@@ -570,7 +575,6 @@ function openSettings(){
   v('set-dress', CONFIG.dress_code);
   v('set-image', CONFIG.hero_image_url);
   v('set-cc', CONFIG.country_code);
-  v('set-pass', CONFIG.host_password);
   document.getElementById('settings-modal').classList.add('show');
 }
 function closeSettings(){ document.getElementById('settings-modal').classList.remove('show'); }
@@ -578,8 +582,7 @@ async function saveSettings(){
   const val = id => document.getElementById(id).value.trim();
   const event_name = val('set-name') || 'My Event';
   const event_date = val('set-date');
-  const host_password = val('set-pass') || 'changeme123';
-  const payload = { event_name, event_date, host_password };
+  const payload = { event_name, event_date };
 
   // optional columns: only send the ones that exist in the DB, so save never fails pre-migration
   const optional = {

@@ -1,1 +1,684 @@
 
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move-in plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#12151a; --shell:#191d24; --shell-2:#222831; --shell-3:#333b47; --shell-4:#414b5a;
+  --paper:#f7f7f3; --chalk:#eceee9; --graphite:#949ba6;
+  --have:#0f6f66; --ordered:#5f4fc0; --need:#c07c05; --fixed:#4a5768;
+  --guide:#e0417a;
+  --hair:rgba(255,255,255,.09); --r:4px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--shell);color:var(--chalk);font-family:Archivo,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+.app{display:grid;grid-template-rows:auto 1fr;height:100%}
+
+/* ---------- topbar ---------- */
+.topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:9px 16px;
+  border-bottom:1px solid var(--hair);background:var(--shell-2)}
+.brand{margin-right:auto}
+.brand h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em}
+.brand span{font-size:10.5px;color:var(--graphite);letter-spacing:.09em;text-transform:uppercase}
+.stat{line-height:1.15}
+.stat b{display:block;font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600}
+.stat span{font-size:9.5px;color:var(--graphite);letter-spacing:.09em;text-transform:uppercase}
+.stat.ok b{color:#39b39a}.stat.warn b{color:#e0a52f}
+.tools{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+button{font-family:inherit;font-size:12px;color:var(--chalk);background:var(--shell-3);border:1px solid transparent;
+  border-radius:var(--r);padding:7px 11px;cursor:pointer;transition:background .12s}
+button:hover{background:var(--shell-4)}
+button:focus-visible{outline:2px solid var(--need);outline-offset:2px}
+button.on{background:var(--chalk);color:var(--ink);font-weight:600}
+button.gb{background:transparent;border-color:var(--shell-3)}
+a.gb{background:transparent;border-color:var(--shell-3);text-decoration:none;display:inline-flex;
+  align-items:center;color:var(--chalk)}
+a.gb:hover{border-color:var(--graphite)}
+button.gb:hover{background:var(--shell-3)}
+.zoom{display:flex;gap:2px;background:var(--shell);border-radius:var(--r);padding:2px}
+.zoom button{background:transparent;padding:5px 10px;font-family:"IBM Plex Mono",monospace}
+.save{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--graphite)}
+
+.body{display:grid;grid-template-columns:250px 1fr 300px;min-height:0}
+.pane{background:var(--shell-2);overflow-y:auto;min-height:0}
+.pane.left{border-right:1px solid var(--hair)}
+.pane.right{border-left:1px solid var(--hair)}
+.pane h2{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--graphite);
+  margin:0;padding:14px 14px 6px;font-weight:600}
+
+/* ---------- catalog ---------- */
+.cat{padding:0 8px 16px}
+.gl{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--graphite);padding:12px 6px 6px;border-top:1px solid var(--hair);margin-top:4px}
+.chip{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;padding:6px 7px;border-radius:var(--r)}
+.chip:hover{background:var(--shell-3)}
+.chip .pv{flex:none;width:30px;height:24px;opacity:.9}
+.chip .tx{flex:1;min-width:0}
+.chip em{display:block;font-style:normal;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .d{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--graphite)}
+
+/* ---------- canvas ---------- */
+.canvaswrap{position:relative;overflow:auto;background:#141820;padding:40px 30px 30px 46px}
+.sheet{position:relative;margin:auto;width:max-content}
+.stage{position:relative;background:var(--paper);box-shadow:0 20px 60px rgba(0,0,0,.5);touch-action:none}
+.stage.grid{background-image:
+  linear-gradient(to right,rgba(18,21,26,.055) 1px,transparent 1px),
+  linear-gradient(to bottom,rgba(18,21,26,.055) 1px,transparent 1px)}
+
+.room{position:absolute;border:3px solid var(--ink)}
+.room[data-k=live]{background:rgba(15,111,102,.045)}
+.room[data-k=sleep]{background:rgba(95,79,192,.05)}
+.room[data-k=wet]{background:rgba(40,90,140,.07)}
+.room[data-k=serve]{background:rgba(18,21,26,.045)}
+.rl{position:absolute;left:8px;top:6px;font-family:"IBM Plex Mono",monospace;font-size:10px;
+  letter-spacing:.07em;color:rgba(18,21,26,.55);pointer-events:none;line-height:1.4}
+.rl b{display:block;font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:rgba(18,21,26,.8)}
+.roomedit .room{cursor:move;border-color:#2f6ea8}
+.roomedit .room:hover{filter:brightness(.96)}
+.roomedit .room.sel{border-color:#e0417a;background:rgba(224,65,122,.09);z-index:3}
+.rz{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:#2f6ea8;border-radius:3px;
+  cursor:nwse-resize;display:none}
+.roomedit .rz{display:block}
+
+.item{position:absolute;left:0;top:0;transform-origin:center;cursor:grab;touch-action:none}
+.item.dragging{will-change:transform;cursor:grabbing}
+.room.dragging{will-change:left,top,width,height}
+.item svg{display:block;width:100%;height:100%;overflow:visible}
+.item .bd{fill:var(--f);stroke:var(--s);stroke-width:1.7;vector-effect:non-scaling-stroke;stroke-dasharray:var(--dash,none)}
+.item .fl{fill:var(--s);opacity:.15}
+.item .ln{fill:none;stroke:var(--s);stroke-width:1.1;opacity:.6;vector-effect:non-scaling-stroke}
+.item .dt{fill:var(--s);opacity:.4}
+.item[data-s=have]{--s:var(--have);--f:rgba(15,111,102,.11)}
+.item[data-s=ordered]{--s:var(--ordered);--f:rgba(95,79,192,.09);--dash:7 5}
+.item[data-s=need]{--s:var(--need);--f:rgba(192,124,5,.10);--dash:7 5}
+.item[data-s=fixed]{--s:var(--fixed);--f:rgba(74,87,104,.10)}
+.item.sel .bd{stroke-width:2.6}
+.item.sel{filter:drop-shadow(0 3px 9px rgba(0,0,0,.28))}
+.item .cap{position:absolute;left:50%;top:100%;transform:translateX(-50%) rotate(calc(-1 * var(--rot,0deg)));
+  margin-top:3px;font-family:"IBM Plex Mono",monospace;font-size:9.5px;white-space:nowrap;color:rgba(18,21,26,.62);
+  background:rgba(247,247,243,.9);padding:0 3px;border-radius:2px;pointer-events:none;display:none}
+.item.sel .cap{display:block}
+.item .pk{position:absolute;right:-4px;top:-4px;min-width:17px;height:17px;border-radius:9px;background:var(--s);
+  color:#fff;font-family:"IBM Plex Mono",monospace;font-size:9px;display:flex;align-items:center;
+  justify-content:center;padding:0 4px;pointer-events:none;transform:rotate(calc(-1 * var(--rot,0deg)))}
+.rot{position:absolute;left:50%;top:-26px;width:20px;height:20px;margin-left:-10px;border-radius:50%;
+  background:var(--ink);cursor:grab;display:none;align-items:center;justify-content:center;color:#fff;font-size:11px;
+  transform:rotate(calc(-1 * var(--rot,0deg)))}
+.item.sel .rot{display:flex}
+.roomedit .item{pointer-events:none;opacity:.35}
+body.dim .item[data-s=have],body.dim .item[data-s=fixed]{opacity:.14}
+
+.guide{position:absolute;background:var(--guide);display:none;z-index:9;pointer-events:none}
+.guide.v{width:1px;top:0;bottom:0}.guide.h{height:1px;left:0;right:0}
+.tick{position:absolute;font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--graphite);pointer-events:none}
+.tick.t{top:-19px;transform:translateX(-50%)}
+.tick.l{left:-28px;transform:translateY(-50%)}
+
+/* ---------- inspector ---------- */
+.insp{padding:0 14px 24px}
+.empty{padding:16px 14px;color:var(--graphite);font-size:12.5px;line-height:1.65}
+.field{margin-bottom:11px}
+.field>label{display:block;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--graphite);
+  margin-bottom:4px;font-weight:600}
+input[type=text],input[type=number],textarea{width:100%;background:var(--shell);border:1px solid var(--shell-3);
+  color:var(--chalk);border-radius:var(--r);padding:8px;font-family:inherit;font-size:13px}
+input.mono,textarea{font-family:"IBM Plex Mono",monospace;font-size:12px}
+input:focus,textarea:focus{outline:none;border-color:var(--graphite)}
+textarea{resize:vertical;min-height:50px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.seg button{padding:8px 3px;font-size:11px;background:var(--shell);border:1px solid var(--shell-3)}
+.seg button[data-v=have].on{background:var(--have);border-color:var(--have);color:#fff}
+.seg button[data-v=ordered].on{background:var(--ordered);border-color:var(--ordered);color:#fff}
+.seg button[data-v=need].on{background:var(--need);border-color:var(--need);color:#fff}
+.contents{margin-top:8px;border-top:1px solid var(--hair);padding-top:12px}
+.chead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.chead .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--graphite)}
+.cline{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px dotted rgba(255,255,255,.08)}
+.cline input{margin-top:2px;accent-color:var(--have);width:15px;height:15px;flex:none}
+.cline span{flex:1;font-size:12.5px;line-height:1.45}
+.cline.done span{text-decoration:line-through;color:var(--graphite)}
+.cline .x{background:none;padding:1px 5px;color:var(--graphite);font-size:15px;line-height:1}
+.cline .x:hover{color:#e2705c;background:none}
+.addline{display:flex;gap:6px;margin-top:10px}
+.legend{padding:12px 14px 20px;border-top:1px solid var(--hair);font-size:11.5px;color:var(--graphite);line-height:1.9}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:8px;border:1.6px solid}
+.sw.h{border-color:var(--have);background:rgba(15,111,102,.15)}
+.sw.o{border-style:dashed;border-color:var(--ordered)}
+.sw.n{border-style:dashed;border-color:var(--need)}
+.sw.f{border-color:var(--fixed)}
+.tabbar{display:none}
+
+@media (max-width:900px){
+  .body{grid-template-columns:1fr;grid-template-rows:minmax(220px,44vh) auto 1fr}
+  .canvaswrap{padding:30px 16px 16px 34px}
+  .pane{display:none}.pane.show{display:block}
+  .pane.left,.pane.right{border:0;border-top:1px solid var(--hair)}
+  .tabbar{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:6px;background:var(--shell-2);border-top:1px solid var(--hair)}
+  .brand span{display:none}
+}
+@media print{
+  body{background:#fff;overflow:visible}
+  .topbar,.pane,.tabbar,.rot,.guide{display:none!important}
+  .body{display:block}.canvaswrap{overflow:visible;padding:16px;background:#fff}
+  .stage{box-shadow:none;border:3px solid #000}
+}
+</style>
+
+<script src="../../shared/core.js"></script>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><h1>Move-in plan</h1><span>1 bed · 2 bath</span></div>
+    <div class="stat" id="stArea"><b>—</b><span>floor area</span></div>
+    <div class="stat" id="stNeed"><b>—</b><span>still to buy</span></div>
+    <div class="stat" id="stBudget"><b>—</b><span>AED to spend</span></div>
+    <div class="stat" id="stPack"><b>—</b><span>drawers filled</span></div>
+    <div class="tools">
+      <a class="gb" href="/moveplan/">☑ Checklist</a>
+      <a class="gb" href="/">✉ RSVP</a>
+      <div class="zoom"><button id="zOut">−</button><button id="zFit">Fit</button><button id="zIn">+</button></div>
+      <button id="bRooms" class="gb">Edit rooms</button>
+      <button id="bDim" class="gb">Gaps only</button>
+      <button id="bGrid" class="gb on">Grid</button>
+      <button id="bPrint" class="gb">Save as PDF</button>
+      <button id="bCopy" class="gb">Copy for Excel</button>
+      <button id="bReset" class="gb">Reset</button>
+      <span class="save" id="saveNote"></span>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="pane left show" id="paneLeft"><h2>Add to the plan</h2><div class="cat" id="catalog"></div></aside>
+
+    <div class="canvaswrap" id="wrap">
+      <div class="sheet" id="sheet">
+        <div class="stage grid" id="stage">
+          <div class="guide v" id="gv"></div><div class="guide h" id="gh"></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="pane right" id="paneRight">
+      <h2>Details</h2><div id="insp"></div>
+      <div class="legend">
+        <div><i class="sw h"></i>Have it already</div>
+        <div><i class="sw o"></i>Ordered, on the way</div>
+        <div><i class="sw n"></i>Gap — still to buy</div>
+        <div><i class="sw f"></i>Fixed: doors, windows, plumbing</div>
+      </div>
+    </aside>
+
+    <nav class="tabbar"><button id="tabL" class="on">Add things</button><button id="tabR">Details</button></nav>
+  </div>
+</div>
+
+<script>
+/* ══════════ furniture symbols — drawn top-down, coordinates in mm ══════════ */
+const R=(x,y,w,h,r,c)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r||0}" class="${c||'bd'}"/>`;
+const L=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="ln"/>`;
+const C=(cx,cy,r,c)=>`<circle cx="${cx}" cy="${cy}" r="${r}" class="${c||'ln'}"/>`;
+const E=(cx,cy,rx,ry,c)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" class="${c||'bd'}"/>`;
+
+const G={
+  sofa:(w,h,n=3)=>{let s=R(0,0,w,h,70)+R(4,4,w-8,h*.3,50,'fl')+R(4,4,w*.13,h-8,50,'fl')+R(w-4-w*.13,4,w*.13,h-8,50,'fl');
+    const a=w*.13+10,sw=(w-2*a)/n;for(let i=1;i<n;i++)s+=L(a+sw*i,h*.34,a+sw*i,h-30);return s},
+  chair:(w,h)=>R(0,0,w,h,50)+R(3,3,w-6,h*.22,40,'fl')+L(w*.15,h*.75,w*.85,h*.75),
+  stool:(w,h)=>C(w/2,h/2,Math.min(w,h)/2-3,'bd')+C(w/2,h/2,Math.min(w,h)/5,'ln'),
+  bed:(w,h,p=2)=>{let s=R(0,0,w,h,40)+R(0,h*.26,w,h*.74,40,'fl')+L(0,h*.26,w,h*.26);
+    const pw=w/p-70;for(let i=0;i<p;i++)s+=R(i*(w/p)+35,55,pw,h*.16,35);return s+L(w*.12,h*.62,w*.88,h*.62)},
+  tableR:(w,h)=>R(0,0,w,h,25)+R(60,60,w-120,h-120,15,'ln'),
+  tableO:(w,h)=>E(w/2,h/2,w/2-3,h/2-3)+E(w/2,h/2,w/2-60,h/2-60,'ln'),
+  cab:(w,h,n=3)=>{let s=R(0,0,w,h,10);const cw=w/n;
+    for(let i=1;i<n;i++)s+=L(cw*i,4,cw*i,h-4);
+    for(let i=0;i<n;i++)s+=L(cw*i+cw*.3,h*.62,cw*i+cw*.7,h*.62);return s},
+  shelf:(w,h,n=4)=>{let s=R(0,0,w,h,6)+R(0,0,w,h*.3,4,'fl');for(let i=1;i<n;i++)s+=L(w/n*i,0,w/n*i,h);return s},
+  wardrobe:(w,h)=>R(0,0,w,h,8)+L(w/2,0,w/2,h)+`<path d="M60 ${h*.35} H ${w-60}" class="ln" stroke-dasharray="26 16"/>`
+    +`<path d="M4 ${h} a ${w/2-4} ${w/2-4} 0 0 0 ${w/2-4} -${w/2-4}" class="ln"/>`,
+  rug:(w,h)=>`<rect x="0" y="0" width="${w}" height="${h}" rx="20" class="bd" stroke-dasharray="30 18"/>`
+    +`<rect x="90" y="90" width="${w-180}" height="${h-180}" rx="12" class="ln"/>`,
+  lamp:(w,h)=>C(w/2,h/2,w/2-3,'bd')+C(w/2,h/2,w/4,'ln')+C(w/2,h/2,w/9,'dt'),
+  plant:(w,h)=>C(w/2,h/2,w/2-3,'bd')+C(w*.34,h*.36,w*.17,'ln')+C(w*.66,h*.38,w*.15,'ln')+C(w*.5,h*.68,w*.18,'ln'),
+  fridge:(w,h)=>R(0,0,w,h,12)+L(w/2,0,w/2,h)+R(w/2-70,h*.28,26,h*.44,10,'fl')+R(w/2+44,h*.28,26,h*.44,10,'fl'),
+  range:(w,h)=>R(0,0,w,h,10)+R(0,0,w,h*.18,6,'fl')+C(w*.28,h*.45,w*.15)+C(w*.72,h*.45,w*.15)
+    +C(w*.28,h*.78,w*.11)+C(w*.72,h*.78,w*.11),
+  machine:(w,h)=>R(0,0,w,h,12)+R(0,0,w,h*.2,8,'fl')+C(w/2,h*.62,Math.min(w,h)*.26,'bd')+C(w/2,h*.62,Math.min(w,h)*.14),
+  island:(w,h)=>R(0,0,w,h,14)+`<rect x="70" y="70" width="${w-140}" height="${h-140}" rx="8" class="ln" stroke-dasharray="22 14"/>`,
+  counter:(w,h)=>R(0,0,w,h,6)+L(0,h*.72,w,h*.72)+E(w*.5,h*.42,w*.12,h*.26,'ln'),
+  toilet:(w,h)=>R(w*.12,0,w*.76,h*.26,12)+E(w/2,h*.62,w*.42,h*.33)+E(w/2,h*.62,w*.27,h*.2,'ln'),
+  vanity:(w,h)=>R(0,0,w,h,8)+E(w/2,h*.52,w*.26,h*.3,'ln')+C(w/2,h*.16,h*.07,'dt')+L(w*.16,h*.86,w*.84,h*.86),
+  shower:(w,h)=>R(0,0,w,h,8)+R(70,70,w-140,h-140,6,'ln')+C(w/2,h/2,Math.min(w,h)*.07,'dt')
+    +L(0,0,w*.3,0)+L(w,h,w,h*.7),
+  tub:(w,h)=>R(0,0,w,h,60)+`<rect x="70" y="70" width="${w-140}" height="${h-140}" rx="45" class="ln"/>`
+    +C(w*.16,h/2,Math.min(w,h)*.06,'dt'),
+  mirror:(w,h)=>R(0,0,w,h,4,'bd')+L(w*.1,0,w*.02,h)+L(w*.35,0,w*.27,h)+L(w*.6,0,w*.52,h)+L(w*.85,0,w*.77,h),
+  desk:(w,h)=>R(0,0,w,h,8)+R(w*.62,6,w*.36,h-12,6,'ln')+L(w*.62,h/2,w*.98,h/2),
+  hamper:(w,h)=>E(w/2,h/2,w/2-3,h/2-3)+E(w/2,h/2,w/2-60,h/2-60,'ln'),
+  door:(w,h)=>`<path d="M0 ${h} L0 0" class="bd" stroke-width="3"/>`
+    +`<path d="M0 ${h} a ${w} ${w} 0 0 1 ${w} -${w}" class="ln" fill="none"/>`+L(0,h,w,h),
+  slider:(w,h)=>R(0,h*.3,w*.52,h*.4,0)+R(w*.48,0,w*.52,h*.4,0)+L(0,h*.5,w,h*.5),
+  window:(w,h)=>R(0,0,w,h,0)+L(0,h/2,w,h/2)
+};
+/* ══════════ catalogue — every dimension in mm ══════════ */
+const DRAWERS={
+ "Dresser":["Top drawer — underwear, socks","Drawer 2 — t-shirts","Drawer 3 — trousers","Drawer 4 — knitwear","Bottom — off-season"],
+ "Nightstand":["Drawer — charger, meds, earplugs","Shelf — book, glasses"],
+ "Wardrobe":["Rail — shirts & jackets","Rail — long items","Shelf — bags, hats","Floor — shoe boxes","Drawer — belts, scarves"],
+ "Pantry cabinet":["Shelf 1 — coffee, tea, cereal","Shelf 2 — pasta, rice, flour","Shelf 3 — cans & jars","Shelf 4 — snacks","Bottom — bulk & water"],
+ "Vanity":["Drawer — daily skincare","Drawer — hair tools","Under sink — cleaning refills","Under sink — spare paper"],
+ "Storage tower":["Top — towels in use","Middle — spare towels","Bottom — first aid, toiletries"],
+ "Kitchen island":["Drawer — cutlery","Drawer — utensils","Cabinet — pots & pans","Cabinet — bowls, trays"],
+ "TV console":["Drawer — remotes, cables","Shelf — router, console","Shelf — games"],
+ "Storage shelf":["Bin — cleaning supplies","Bin — tools & hardware","Bin — bulbs, batteries","Bin — luggage, seasonal"],
+ "Drawer unit":["Drawer — documents, warranties","Drawer — stationery","Drawer — odds and ends"],
+ "Bookshelf":["Top — reading now","Middle — read","Bottom — files, magazines"],
+ "Shoe rack":["Everyday shoes","Work shoes","Guest slippers"],
+ "Base cabinets":["Under sink — bin, cleaning","Drawer — cutlery","Drawer — utensils","Cabinet — pots","Cabinet — plates, mugs"]
+};
+/* name, width mm, depth mm, glyph, extra glyph arg */
+const CATALOG=[
+ ["Living",[["Sofa, 3-seat",2100,900,"sofa",3],["Loveseat",1500,900,"sofa",2],["Armchair",850,850,"sofa",1],
+   ["Coffee table",1100,600,"tableR"],["TV console",1600,400,"cab",3],["Bookshelf",800,300,"shelf",4],
+   ["Side table",450,450,"tableO"],["Floor lamp",350,350,"lamp"],["Rug 2400×1700",2400,1700,"rug"],
+   ["Console table",1200,400,"cab",2],["Plant",450,450,"plant"]]],
+ ["Kitchen & dining",[["Fridge",900,750,"fridge"],["Range",760,650,"range"],["Dishwasher",600,600,"machine"],
+   ["Base cabinets",2400,600,"counter"],["Kitchen island",1500,900,"island"],["Pantry cabinet",800,600,"cab",2],
+   ["Dining table, 4",1200,800,"tableR"],["Dining table, 6",1800,900,"tableR"],["Round table, 4",1100,1100,"tableO"],
+   ["Dining chair",450,450,"chair"],["Bar stool",400,400,"stool"]]],
+ ["Bedroom",[["King bed",1800,2000,"bed",2],["Queen bed",1600,2000,"bed",2],["Single bed",900,2000,"bed",1],
+   ["Nightstand",450,400,"cab",1],["Dresser",1400,450,"cab",4],["Wardrobe",1800,600,"wardrobe"],
+   ["Desk",1200,600,"desk"],["Desk chair",600,600,"chair"],["Bench",1100,400,"cab",1],["Full mirror",500,120,"mirror"]]],
+ ["Bathrooms",[["Vanity",900,500,"vanity"],["Toilet",400,700,"toilet"],["Shower 900",900,900,"shower"],
+   ["Bathtub",1700,750,"tub"],["Storage tower",600,350,"shelf",3],["Laundry hamper",450,450,"hamper"]]],
+ ["Utility & storage",[["Washer",600,650,"machine"],["Dryer",600,650,"machine"],["Shoe rack",900,300,"shelf",3],
+   ["Storage shelf",900,450,"shelf",4],["Drawer unit",400,450,"cab",1],["Vacuum",350,350,"lamp"]]],
+ ["Doors & windows",[["Door 800",800,120,"door",0,1],["Door 900",900,120,"door",0,1],
+   ["Sliding door",1600,120,"slider",0,1],["Window 1200",1200,120,"window",0,1],["Window 1800",1800,120,"window",0,1]]]
+];
+const DEFAULT_ROOMS=[
+ {id:"r1",n:"Living / dining",k:"live",x:0,y:0,w:5200,h:4200},
+ {id:"r2",n:"Kitchen",k:"wet",x:5200,y:0,w:3400,h:2500},
+ {id:"r3",n:"Entry",k:"serve",x:5200,y:2500,w:3400,h:1700},
+ {id:"r4",n:"Guest bath",k:"wet",x:0,y:4200,w:2100,h:2200},
+ {id:"r5",n:"Hall",k:"serve",x:2100,y:4200,w:1500,h:2200},
+ {id:"r6",n:"Laundry",k:"wet",x:3600,y:4200,w:1500,h:2200},
+ {id:"r7",n:"Walk-in closet",k:"serve",x:5100,y:4200,w:3500,h:2200},
+ {id:"r8",n:"Bedroom",k:"sleep",x:0,y:6400,w:5600,h:3000},
+ {id:"r9",n:"Ensuite bath",k:"wet",x:5600,y:6400,w:3000,h:3000}
+];
+const SNAP=50, MAG=140;
+if(!requireHost()) throw new Error("not signed in");
+
+/* ══════════ state ══════════ */
+let S={rooms:structuredClone(DEFAULT_ROOMS),items:[],sel:null,selRoom:null};
+let px=0.06, zoomK=1, roomEdit=false, dimMode=false, els=new Map();
+const $=s=>document.querySelector(s);
+const stage=$("#stage"), sheet=$("#sheet"), wrap=$("#wrap"), gv=$("#gv"), gh=$("#gh");
+const nid=()=>"i"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const snap=v=>Math.round(v/SNAP)*SNAP;
+const m2=mm=>mm/1e6;
+
+/* ══════════ storage ══════════ */
+let sT;
+function save(){clearTimeout(sT);sT=setTimeout(async()=>{
+  try{
+    await sb("moveplan_layout",{method:"POST",headers:{Prefer:"resolution=merge-duplicates"},
+      body:JSON.stringify({id:1,data:{rooms:S.rooms,items:S.items}})});
+    note("Saved")
+  }catch(e){console.error(e);note("Not saved — run moveplan-layout.sql")}},500)}
+function note(t){const n=$("#saveNote");n.textContent=t;clearTimeout(n._t);n._t=setTimeout(()=>n.textContent="",2000)}
+async function load(){
+  try{
+    const r=await sb("moveplan_layout?id=eq.1&select=data");
+    const d=r&&r[0]&&r[0].data;
+    if(d&&d.rooms&&d.items){S.rooms=d.rooms;S.items=d.items}
+  }catch(e){console.error(e);note("Could not load — run moveplan-layout.sql")}
+  draw();insp();stats();
+}
+
+/* ══════════ geometry ══════════ */
+function bnd(){let W=1,H=1;S.rooms.forEach(r=>{W=Math.max(W,r.x+r.w);H=Math.max(H,r.y+r.h)});return{W,H}}
+function fit(){const{W,H}=bnd();px=Math.max(.008,Math.min((wrap.clientWidth-90)/W,(wrap.clientHeight-80)/H))}
+function aabb(it){const a=(it.rot||0)*Math.PI/180,co=Math.abs(Math.cos(a)),si=Math.abs(Math.sin(a));
+  const W=co*it.w+si*it.h, H=si*it.w+co*it.h, cx=it.x+it.w/2, cy=it.y+it.h/2;
+  return{x:cx-W/2,y:cy-H/2,w:W,h:H,cx,cy}}
+function roomAt(cx,cy){const r=S.rooms.find(r=>cx>=r.x&&cx<=r.x+r.w&&cy>=r.y&&cy<=r.y+r.h);return r?r.n:"—"}
+
+/* ══════════ render ══════════ */
+function draw(){
+  const{W,H}=bnd(), sc=px*zoomK;
+  Object.assign(stage.style,{width:W*sc+"px",height:H*sc+"px",backgroundSize:(500*sc)+"px "+(500*sc)+"px"});
+  document.body.classList.toggle("dim",dimMode);
+  wrap.classList.toggle("roomedit",roomEdit);
+  stage.querySelectorAll(".room,.item,.tick").forEach(e=>e.remove());
+  sheet.querySelectorAll(".tick").forEach(e=>e.remove());
+  els.clear();
+
+  for(let v=0;v<=W;v+=1000){const t=document.createElement("div");t.className="tick t";
+    t.style.left=v*sc+"px";t.textContent=(v/1000)+"m";sheet.appendChild(t)}
+  for(let v=0;v<=H;v+=1000){const t=document.createElement("div");t.className="tick l";
+    t.style.top=v*sc+"px";t.textContent=(v/1000)+"m";sheet.appendChild(t)}
+
+  S.rooms.forEach(r=>{
+    const d=document.createElement("div");d.className="room"+(S.selRoom===r.id?" sel":"");
+    d.dataset.id=r.id;d.dataset.k=r.k||"serve";
+    Object.assign(d.style,{left:r.x*sc+"px",top:r.y*sc+"px",width:r.w*sc+"px",height:r.h*sc+"px"});
+    d.innerHTML=`<div class="rl"><b>${r.n}</b>${r.w} × ${r.h} mm · ${m2(r.w*r.h).toFixed(1)} m²</div><div class="rz"></div>`;
+    stage.appendChild(d);
+  });
+  S.items.forEach(it=>stage.appendChild(build(it)));
+}
+function build(it){
+  const sc=px*zoomK, d=document.createElement("div");
+  d.className="item"+(S.sel===it.id?" sel":"");d.dataset.id=it.id;d.dataset.s=it.status;
+  const fn=G[it.g]||G.cab, inner=fn(it.w,it.h,it.a);
+  const c=it.contents||[];
+  d.innerHTML=`<svg viewBox="0 0 ${it.w} ${it.h}" preserveAspectRatio="none">${inner}</svg>
+    <div class="cap">${it.name} · ${it.w}×${it.h}</div>
+    ${c.length?`<div class="pk">${c.filter(x=>x.d).length}/${c.length}</div>`:""}
+    <div class="rot">⟳</div>`;
+  place(d,it,sc);els.set(it.id,d);return d;
+}
+function place(d,it,sc){
+  d.style.width=it.w*sc+"px";d.style.height=it.h*sc+"px";
+  move(d,it,sc);
+}
+function move(d,it,sc){
+  if(!d)return;
+  d.style.setProperty("--rot",(it.rot||0)+"deg");
+  d.style.transform=`translate3d(${it.x*sc}px,${it.y*sc}px,0) rotate(${it.rot||0}deg)`;
+}
+function stats(){
+  const a=S.rooms.reduce((t,r)=>t+r.w*r.h,0), sq=m2(a)*10.7639;
+  const live=S.items.filter(i=>!i.fx);
+  const need=live.filter(i=>i.status!=="have").length;
+  const bud=live.filter(i=>i.status!=="have").reduce((t,i)=>t+(+i.price||0),0);
+  let tot=0,done=0;S.items.forEach(i=>(i.contents||[]).forEach(c=>{tot++;c.d&&done++}));
+  const set=(id,v,cls)=>{const e=$("#"+id);e.querySelector("b").textContent=v;e.className="stat"+(cls?" "+cls:"")};
+  set("stArea",m2(a).toFixed(1)+" m²",sq>=800&&sq<=900?"ok":"warn");
+  $("#stArea").querySelector("span").textContent=Math.round(sq)+" sq ft";
+  set("stNeed",need,need?"warn":"ok");
+  set("stBudget",bud?bud.toLocaleString():"0");
+  set("stPack",tot?done+"/"+tot:"0",tot&&done===tot?"ok":"");
+}
+
+/* ══════════ inspector ══════════ */
+const esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+function insp(){
+  const box=$("#insp");
+  $("#paneRight").querySelector("h2").textContent=roomEdit?"Rooms":"Details";
+  if(roomEdit){return roomPanel(box)}
+  const it=S.items.find(i=>i.id===S.sel);
+  if(!it){box.innerHTML=`<div class="empty">Nothing selected.<br><br>Tap a piece on the plan to rename it,
+    set whether you own it yet, and list what goes in each drawer.<br><br>
+    Drag to move — pieces snap flush to walls and to each other. Use the ⟳ handle above a selected
+    piece to turn it, or press <b>R</b> for 90°.</div>`;return}
+  const c=it.contents||[];
+  box.innerHTML=`<div class="insp">
+    <div class="field"><label>Name</label><input type="text" id="fName" value="${esc(it.name)}"></div>
+    ${it.fx?"":`<div class="field"><label>Status</label><div class="seg">
+      <button data-v="have" class="${it.status==="have"?"on":""}">Have</button>
+      <button data-v="ordered" class="${it.status==="ordered"?"on":""}">Ordered</button>
+      <button data-v="need" class="${it.status==="need"?"on":""}">Need</button></div></div>`}
+    <div class="row2">
+      <div class="field"><label>Width mm</label><input class="mono" type="number" step="10" id="fW" value="${it.w}"></div>
+      <div class="field"><label>Depth mm</label><input class="mono" type="number" step="10" id="fH" value="${it.h}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Angle °</label><input class="mono" type="number" step="15" id="fR" value="${it.rot||0}"></div>
+      <div class="field"><label>Price AED</label><input class="mono" type="number" step="10" id="fP" value="${it.price||""}" placeholder="0"></div>
+    </div>
+    <div class="field"><label>Sits in</label>
+      <div class="mono" style="font-size:12px;color:var(--graphite);padding:2px 0">${esc(roomAt(it.x+it.w/2,it.y+it.h/2))}</div></div>
+    <div class="field"><label>Notes</label><textarea id="fN" placeholder="Shop, delivery date, size to double-check…">${esc(it.notes||"")}</textarea></div>
+    <div class="row2"><button id="bRot">Turn 90°</button><button id="bDel">Remove</button></div>
+    ${it.fx?"":`<div class="contents">
+      <div class="chead"><label style="font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--graphite);font-weight:600">What goes inside</label>
+        <span class="n">${c.filter(x=>x.d).length}/${c.length} packed</span></div>
+      <div id="clist">${c.map((x,i)=>`<div class="cline${x.d?" done":""}" data-i="${i}">
+        <input type="checkbox" ${x.d?"checked":""}><span contenteditable="true">${esc(x.t)}</span>
+        <button class="x">×</button></div>`).join("")||
+        `<div style="color:var(--graphite);font-size:12px;padding:3px 0">No drawers or shelves listed yet.</div>`}</div>
+      <div class="addline"><input type="text" id="fAdd" placeholder="Add a drawer, shelf or bin…"><button id="bAdd">Add</button></div>
+    </div>`}
+  </div>`;
+  wire(it);
+}
+function wire(it){
+  $("#fName").oninput=e=>{it.name=e.target.value;draw();save()};
+  $("#fW").onchange=e=>{it.w=Math.max(50,+e.target.value||100);draw();insp();save()};
+  $("#fH").onchange=e=>{it.h=Math.max(50,+e.target.value||100);draw();insp();save()};
+  $("#fR").onchange=e=>{it.rot=((+e.target.value||0)%360+360)%360;move(els.get(it.id),it,px*zoomK);save()};
+  const p=$("#fP");if(p)p.oninput=e=>{it.price=+e.target.value||0;stats();save()};
+  $("#fN").oninput=e=>{it.notes=e.target.value;save()};
+  document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{it.status=b.dataset.v;draw();insp();stats();save()});
+  $("#bRot").onclick=()=>{it.rot=((it.rot||0)+90)%360;draw();insp();save()};
+  $("#bDel").onclick=()=>{S.items=S.items.filter(x=>x.id!==it.id);S.sel=null;draw();insp();stats();save()};
+  const A=$("#fAdd");if(!A)return;
+  const add=()=>{const v=A.value.trim();if(!v)return;it.contents=it.contents||[];it.contents.push({t:v,d:false});
+    draw();insp();stats();save();setTimeout(()=>$("#fAdd")&&$("#fAdd").focus(),0)};
+  $("#bAdd").onclick=add;A.onkeydown=e=>{if(e.key==="Enter")add()};
+  document.querySelectorAll(".cline").forEach(l=>{const i=+l.dataset.i;
+    l.querySelector("input").onchange=e=>{it.contents[i].d=e.target.checked;draw();insp();stats();save()};
+    l.querySelector("span").onblur=e=>{it.contents[i].t=e.target.textContent.trim();save()};
+    l.querySelector(".x").onclick=()=>{it.contents.splice(i,1);draw();insp();stats();save()}});
+}
+
+/* ══════════ room editing ══════════ */
+const SQ=10.7639;
+function totalArea(){return S.rooms.reduce((t,r)=>t+r.w*r.h,0)}
+function roomPanel(box){
+  const r=S.rooms.find(x=>x.id===S.selRoom);
+  const now=m2(totalArea());
+  box.innerHTML=`<div class="insp">
+    <div class="field"><label>Resize the whole plan</label>
+      <div class="mono" style="font-size:11.5px;color:var(--graphite);line-height:1.6;margin-bottom:7px">
+        Now ${now.toFixed(1)} m² · ${Math.round(now*SQ)} sq ft</div>
+      <div class="row2">
+        <input class="mono" type="number" id="tSq" value="${Math.round(now*SQ)}" step="10">
+        <button id="bScale">Scale to fit</button>
+      </div>
+      <div style="font-size:11px;color:var(--graphite);line-height:1.55;margin-top:6px">
+        Target in sq ft. Every room shrinks or grows in proportion — furniture keeps its real size and just shifts along.</div>
+    </div>
+    <div style="border-top:1px solid var(--hair);margin:14px 0 12px"></div>
+    ${r?`
+      <div class="field"><label>Room name</label><input type="text" id="rName" value="${esc(r.n)}"></div>
+      <div class="row2">
+        <div class="field"><label>Width mm</label><input class="mono" type="number" step="50" id="rW" value="${r.w}"></div>
+        <div class="field"><label>Depth mm</label><input class="mono" type="number" step="50" id="rH" value="${r.h}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Left edge mm</label><input class="mono" type="number" step="50" id="rX" value="${r.x}"></div>
+        <div class="field"><label>Top edge mm</label><input class="mono" type="number" step="50" id="rY" value="${r.y}"></div>
+      </div>
+      <div class="field"><label>Room type</label>
+        <div class="seg" id="rKind" style="grid-template-columns:repeat(4,1fr)">
+          ${[["live","Living"],["sleep","Sleep"],["wet","Wet"],["serve","Service"]].map(([k,l])=>
+            `<button data-k="${k}" class="${(r.k||"serve")===k?"on":""}">${l}</button>`).join("")}
+        </div>
+      </div>
+      <div class="mono" style="font-size:11.5px;color:var(--graphite);margin:2px 0 12px">
+        ${m2(r.w*r.h).toFixed(2)} m² · ${Math.round(m2(r.w*r.h)*SQ)} sq ft</div>
+      <div class="row2"><button id="bAddRoom">Add a room</button><button id="bDelRoom">Delete room</button></div>
+    `:`<div class="empty" style="padding:0 0 14px">Tap a room on the plan to rename it or type exact dimensions.
+        You can also drag rooms and pull the blue corner handles.</div>
+       <button id="bAddRoom">Add a room</button>`}
+  </div>`;
+  $("#bScale").onclick=()=>scalePlan(+$("#tSq").value||0);
+  $("#tSq").onkeydown=e=>{if(e.key==="Enter")scalePlan(+e.target.value||0)};
+  const ar=$("#bAddRoom");if(ar)ar.onclick=addRoom;
+  if(!r)return;
+  $("#rName").oninput=e=>{r.n=e.target.value;draw();save()};
+  const num=(id,k,min)=>$("#"+id).onchange=e=>{r[k]=Math.max(min,snap(+e.target.value||min));draw();insp();stats();save()};
+  num("rW","w",500);num("rH","h",500);num("rX","x",0);num("rY","y",0);
+  $("#rKind").querySelectorAll("button").forEach(b=>b.onclick=()=>{r.k=b.dataset.k;draw();insp();save()});
+  $("#bDelRoom").onclick=()=>{S.rooms=S.rooms.filter(x=>x.id!==r.id);S.selRoom=null;draw();insp();stats();save()};
+}
+function scalePlan(targetSqft){
+  if(!targetSqft||targetSqft<50)return note("Enter a target in sq ft");
+  const k=Math.sqrt((targetSqft/SQ)/m2(totalArea()));
+  S.rooms.forEach(r=>{r.x=snap(r.x*k);r.y=snap(r.y*k);r.w=Math.max(500,snap(r.w*k));r.h=Math.max(500,snap(r.h*k))});
+  S.items.forEach(i=>{i.x=snap(i.x*k);i.y=snap(i.y*k)});
+  fit();draw();insp();stats();save();
+  note("Plan now "+Math.round(m2(totalArea())*SQ)+" sq ft");
+}
+function addRoom(){
+  const{W,H}=bnd();
+  const r={id:"r"+Date.now().toString(36),n:"New room",k:"serve",x:snap(W*.25),y:snap(H*.25),w:3000,h:2500};
+  S.rooms.push(r);S.selRoom=r.id;draw();insp();stats();save();
+}
+
+/* ══════════ catalogue ══════════ */
+function catalog(){
+  const box=$("#catalog");
+  box.innerHTML=CATALOG.map(([g,rows])=>`<div class="gl">${g}</div>`+rows.map(([n,w,h,gl,a,fx])=>{
+    const fn=G[gl]||G.cab;
+    return `<button class="chip" data-n="${esc(n)}" data-w="${w}" data-h="${h}" data-g="${gl}" data-a="${a||0}" data-f="${fx?1:0}">
+      <svg class="pv item" data-s="${fx?'fixed':'have'}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">${fn(w,h,a)}</svg>
+      <span class="tx"><em>${n}</em><span class="d">${w} × ${h} mm</span></span></button>`}).join("")).join("");
+  box.querySelectorAll(".chip").forEach(b=>b.onclick=()=>add(b.dataset));
+}
+function add(d){
+  const{W,H}=bnd(), w=+d.w, h=+d.h, fx=d.f==="1";
+  let x=snap(W/2-w/2), y=snap(H/2-h/2);
+  while(S.items.some(i=>Math.abs(i.x-x)<100&&Math.abs(i.y-y)<100)){x+=250;y+=250}
+  const tpl=DRAWERS[d.n]||null;
+  const it={id:nid(),name:d.n,w,h,g:d.g,a:+d.a||undefined,x:Math.max(0,x),y:Math.max(0,y),rot:0,fx,
+    status:fx?"fixed":"need",price:0,notes:"",contents:tpl?tpl.map(t=>({t,d:false})):[]};
+  S.items.push(it);S.sel=it.id;draw();insp();stats();save();
+  if(innerWidth<=900)pane("right");
+}
+
+/* ══════════ dragging, snapping, rotating ══════════ */
+let dg=null;
+function edges(){
+  const xs=[],ys=[];const{W,H}=bnd();
+  S.rooms.forEach(r=>{xs.push(r.x,r.x+r.w);ys.push(r.y,r.y+r.h)});
+  S.items.forEach(i=>{if(i.id===S.sel)return;const b=aabb(i);xs.push(b.x,b.x+b.w);ys.push(b.y,b.y+b.h)});
+  xs.push(0,W);ys.push(0,H);return{xs,ys}
+}
+function magnet(b,E){
+  let dx=null,dy=null,gx=null,gy=null;
+  [[b.x,0],[b.x+b.w,-b.w]].forEach(([v,off])=>E.xs.forEach(e=>{const d=e-v;
+    if(Math.abs(d)<MAG&&(dx===null||Math.abs(d)<Math.abs(dx))){dx=d;gx=e}}));
+  [[b.y,0],[b.y+b.h,-b.h]].forEach(([v])=>E.ys.forEach(e=>{const d=e-v;
+    if(Math.abs(d)<MAG&&(dy===null||Math.abs(d)<Math.abs(dy))){dy=d;gy=e}}));
+  return{dx:dx||0,dy:dy||0,gx,gy}
+}
+stage.addEventListener("pointerdown",e=>{
+  const sc=px*zoomK, rz=e.target.closest(".rz"), room=e.target.closest(".room"),
+        rot=e.target.closest(".rot"), item=e.target.closest(".item");
+  if(roomEdit&&room){const r=S.rooms.find(r=>r.id===room.dataset.id);
+    if(S.selRoom!==r.id){S.selRoom=r.id;draw();insp();if(innerWidth<=900)pane("right")}
+    const el=stage.querySelector('.room[data-id="'+r.id+'"]');
+    el&&el.classList.add("dragging");
+    dg={t:rz?"rsz":"room",r,px:e.clientX,py:e.clientY,o:{...r},el};}
+  else if(!roomEdit&&item){
+    const it=S.items.find(i=>i.id===item.dataset.id);if(!it)return;
+    if(S.sel!==it.id){S.sel=it.id;draw();insp();if(innerWidth<=900)pane("right")}
+    const el=els.get(it.id);el&&el.classList.add("dragging");
+    if(rot){const b=aabb(it);dg={t:"rot",r:it,cx:b.cx*sc,cy:b.cy*sc,el}}
+    else dg={t:"item",r:it,px:e.clientX,py:e.clientY,o:{...it},E:edges(),el};
+  }else{S.sel=null;S.selRoom=null;draw();insp();return}
+  e.preventDefault();
+  stage.setPointerCapture(e.pointerId);
+});
+
+let raf=null,pend=null;
+stage.addEventListener("pointermove",e=>{
+  if(!dg)return;
+  pend={x:e.clientX,y:e.clientY,alt:e.altKey};
+  if(raf)return;
+  raf=requestAnimationFrame(()=>{raf=null;step(pend)});
+});
+function step(p){
+  if(!dg||!p)return;
+  const sc=px*zoomK;
+  if(dg.t==="rot"){
+    const R=stage.getBoundingClientRect();
+    const a=Math.atan2(p.y-R.top-dg.cy,p.x-R.left-dg.cx)*180/Math.PI+90;
+    dg.r.rot=((Math.round(a/15)*15)%360+360)%360;
+    move(dg.el,dg.r,sc);return;
+  }
+  const dx=(p.x-dg.px)/sc, dy=(p.y-dg.py)/sc;
+  if(dg.t==="rsz"){
+    dg.r.w=Math.max(500,snap(dg.o.w+dx));dg.r.h=Math.max(500,snap(dg.o.h+dy));
+    dg.el.style.width=dg.r.w*sc+"px";dg.el.style.height=dg.r.h*sc+"px";
+    label(dg.el,dg.r);return;
+  }
+  if(dg.t==="room"){
+    dg.r.x=Math.max(0,snap(dg.o.x+dx));dg.r.y=Math.max(0,snap(dg.o.y+dy));
+    dg.el.style.left=dg.r.x*sc+"px";dg.el.style.top=dg.r.y*sc+"px";return;
+  }
+  const it=dg.r;
+  it.x=Math.max(-500,snap(dg.o.x+dx));it.y=Math.max(-500,snap(dg.o.y+dy));
+  if(!p.alt){const m=magnet(aabb(it),dg.E);it.x+=m.dx;it.y+=m.dy;guide(m.dx?m.gx:null,m.dy?m.gy:null,sc)}
+  else guide(null,null,sc);
+  move(dg.el,it,sc);
+}
+function label(el,r){
+  const l=el.querySelector(".rl");
+  if(l)l.innerHTML=`<b>${r.n}</b>${r.w} × ${r.h} mm · ${m2(r.w*r.h).toFixed(1)} m²`;
+}
+function guide(x,y,sc){
+  gv.style.display=x===null||x===undefined?"none":"block";if(x!=null)gv.style.left=x*sc+"px";
+  gh.style.display=y===null||y===undefined?"none":"block";if(y!=null)gh.style.top=y*sc+"px";
+}
+const endDrag=()=>{
+  if(!dg)return;
+  if(raf){cancelAnimationFrame(raf);raf=null}
+  const wasRoom=dg.t==="room"||dg.t==="rsz";
+  dg.el&&dg.el.classList.remove("dragging");
+  dg=null;pend=null;guide(null,null);
+  if(wasRoom)draw();
+  insp();stats();save();
+};
+stage.addEventListener("pointerup",endDrag);
+stage.addEventListener("pointercancel",endDrag);
+
+addEventListener("keydown",e=>{
+  if(/input|textarea/i.test(e.target.tagName)||e.target.isContentEditable)return;
+  const it=S.items.find(i=>i.id===S.sel);if(!it)return;
+  if(e.key==="r"||e.key==="R"){it.rot=((it.rot||0)+90)%360;draw();insp();save()}
+  if(e.key==="Backspace"||e.key==="Delete"){S.items=S.items.filter(x=>x.id!==it.id);S.sel=null;draw();insp();stats();save()}
+  const st=e.shiftKey?250:50,mv={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[e.key];
+  if(mv){e.preventDefault();it.x+=mv[0];it.y+=mv[1];move(els.get(it.id),it,px*zoomK);save()}
+});
+
+/* ══════════ toolbar ══════════ */
+$("#zIn").onclick=()=>{zoomK=Math.min(4,zoomK*1.25);draw()};
+$("#zOut").onclick=()=>{zoomK=Math.max(.4,zoomK/1.25);draw()};
+$("#zFit").onclick=()=>{zoomK=1;fit();draw()};
+$("#bRooms").onclick=e=>{roomEdit=!roomEdit;e.target.classList.toggle("on",roomEdit);
+  e.target.textContent=roomEdit?"Done":"Edit rooms";S.sel=null;draw();insp();
+  if(innerWidth<=900)pane("right")};
+$("#bDim").onclick=e=>{dimMode=!dimMode;e.target.classList.toggle("on",dimMode);draw()};
+$("#bGrid").onclick=e=>e.target.classList.toggle("on",stage.classList.toggle("grid"));
+$("#bPrint").onclick=()=>print();
+$("#bCopy").onclick=async()=>{
+  const rows=[["Item","Room","Status","Width mm","Depth mm","Angle","Price AED","Notes","Inside","Packed"]];
+  S.items.forEach(i=>rows.push([i.name,roomAt(i.x+i.w/2,i.y+i.h/2),i.status,i.w,i.h,(i.rot||0)+"°",i.price||0,
+    (i.notes||"").replace(/\s+/g," "),(i.contents||[]).map(c=>c.t).join(" | "),
+    (i.contents||[]).filter(c=>c.d).length+"/"+(i.contents||[]).length]));
+  try{await navigator.clipboard.writeText(rows.map(r=>r.join("\t")).join("\n"));note("Copied — paste into Excel")}
+  catch(e){note("Copy blocked — use Save as PDF")}
+};
+$("#bReset").onclick=()=>{if(!confirm("Clear everything and reset the rooms?"))return;
+  S={rooms:structuredClone(DEFAULT_ROOMS),items:[],sel:null};zoomK=1;fit();draw();insp();stats();save()};
+function pane(w){$("#paneLeft").classList.toggle("show",w==="left");$("#paneRight").classList.toggle("show",w==="right");
+  $("#tabL").classList.toggle("on",w==="left");$("#tabR").classList.toggle("on",w==="right")}
+$("#tabL").onclick=()=>pane("left");$("#tabR").onclick=()=>pane("right");
+addEventListener("resize",()=>{fit();draw()});
+
+catalog();fit();load();
+</script>

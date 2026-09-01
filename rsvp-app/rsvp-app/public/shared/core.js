@@ -29,6 +29,7 @@ const getConfig = () => sb('event_config?id=eq.1&select=*').then(r => r && r[0])
 function toast(msg){
   let t = document.getElementById('toast');
   if (!t){ t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+  t.className = 'toast';
   t.textContent = msg; t.classList.add('show');
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
@@ -63,4 +64,3 @@ function renderNav(active){
     `<a class="hubnav-item${s.key === active ? ' on' : ''}" href="${s.path}">
        <span class="hubnav-icon">${s.icon}</span>${escapeHtml(s.label)}</a>`).join('');
 }
-

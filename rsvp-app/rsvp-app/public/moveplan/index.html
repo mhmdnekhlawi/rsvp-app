@@ -77,7 +77,7 @@
   </div>
 </div>
 
-<div id="toast"></div>
+<div class="toast" id="toast"></div>
 
 <script src="../shared/core.js"></script>
 <script>
@@ -92,7 +92,35 @@ const FLOW = ['todo','ordered','delivered','done'];
 const STATUS_LABEL = { todo:'To buy', ordered:'Ordered', delivered:'Delivered', done:'Done' };
 const SIGN = { USD:'$', EGP:'E£', EUR:'€', GBP:'£', AED:'AED ', SAR:'SAR ', LBP:'LL ' };
 
-let ITEMS = [], HIDE_DONE = localStorage.getItem('mp_hide_done') === '1';
+let ITEMS = [], LAYOUT = null, HIDE_DONE = localStorage.getItem('mp_hide_done') === '1';
+
+/* The floor plan uses its own words for the same idea. 'fixed' means built into
+   the flat (a wall, a door) so it never belongs on a shopping list. */
+const FROM_PLAN = { need:'todo', ordered:'ordered', have:'done' };
+const TO_PLAN   = { todo:'need', ordered:'ordered', delivered:'ordered', done:'have' };
+const PLAN_FLOW = ['todo','ordered','done'];
+
+function roomAtPoint(cx, cy){
+  const rooms = (LAYOUT && LAYOUT.rooms) || [];
+  const r = rooms.find(r => cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h);
+  return r ? r.n : 'Unplaced';
+}
+/* Floor plan pieces, dressed up to look like checklist rows. */
+function planRows(){
+  const items = (LAYOUT && LAYOUT.items) || [];
+  return items.filter(i => i.status !== 'fixed').map(i => ({
+    id: 'plan:' + i.id,
+    planId: i.id,
+    item: i.name,
+    room: roomAtPoint(i.x + i.w / 2, i.y + i.h / 2),
+    status: FROM_PLAN[i.status] || 'todo',
+    cost: Number(i.price) || null,
+    currency: 'AED',
+    owner: null,
+    fromPlan: true
+  }));
+}
+const allRows = () => ITEMS.map(i => ({ ...i, fromPlan: false })).concat(planRows());
 
 const money = (n, c) => (SIGN[c] || (c + ' ')) + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
@@ -101,6 +129,8 @@ async function boot(){
   renderNav('moveplan');
   try {
     ITEMS = await sb('moveplan_items?select=*&order=created_at.asc') || [];
+    const l = await sb('moveplan_layout?id=eq.1&select=data');
+    LAYOUT = (l && l[0] && l[0].data) || null;
   } catch(e){
     console.error(e);
     document.getElementById('mp-body').innerHTML =
@@ -141,11 +171,25 @@ async function patchItem(id, patch){
   if (it) Object.assign(it, patch);
 }
 async function cycleStatus(id){
+  if (String(id).startsWith('plan:')) return cyclePlanStatus(String(id).slice(5));
   const it = ITEMS.find(x => String(x.id) === String(id));
   if (!it) return;
   const next = FLOW[(FLOW.indexOf(it.status || 'todo') + 1) % FLOW.length];
   try { await patchItem(id, { status: next }); render(); }
   catch(e){ console.error(e); toast('Could not update.'); }
+}
+
+/* Writes straight back into the floor plan, so the colours there change too. */
+async function cyclePlanStatus(planId){
+  const it = (LAYOUT && LAYOUT.items || []).find(x => String(x.id) === String(planId));
+  if (!it) return;
+  const cur = FROM_PLAN[it.status] || 'todo';
+  it.status = TO_PLAN[PLAN_FLOW[(PLAN_FLOW.indexOf(cur) + 1) % PLAN_FLOW.length]];
+  try {
+    await sb('moveplan_layout', { method:'POST', headers:{ Prefer:'resolution=merge-duplicates' },
+      body: JSON.stringify({ id:1, data: LAYOUT }) });
+    render();
+  } catch(e){ console.error(e); toast('Could not update the floor plan.'); }
 }
 async function renameItem(id, val){
   const v = (val || '').trim();
@@ -185,20 +229,23 @@ function render(){
     [...new Set(ITEMS.map(i => i.owner).filter(Boolean))]
       .map(o => `<option value="${escapeAttr(o)}">`).join('');
 
-  const done = ITEMS.filter(i => i.status === 'done').length;
-  const pct = ITEMS.length ? Math.round(done / ITEMS.length * 100) : 0;
+  const ROWS = allRows();
+  const done = ROWS.filter(i => i.status === 'done').length;
+  const pct = ROWS.length ? Math.round(done / ROWS.length * 100) : 0;
   document.getElementById('mp-bar-fill').style.width = pct + '%';
 
   // money is kept separate per currency — no invented exchange rates
   const totals = {}, spent = {};
-  ITEMS.forEach(i => {
+  ROWS.forEach(i => {
     if (i.cost == null) return;
     const c = i.currency || 'USD';
     totals[c] = (totals[c] || 0) + Number(i.cost);
     if (i.status === 'delivered' || i.status === 'done') spent[c] = (spent[c] || 0) + Number(i.cost);
   });
 
-  let sum = `<div class="box"><b>${done}/${ITEMS.length}</b><span>done · ${pct}%</span></div>`;
+  const fromPlan = ROWS.filter(i => i.fromPlan).length;
+  let sum = `<div class="box"><b>${done}/${ROWS.length}</b><span>done · ${pct}%</span></div>`;
+  if (fromPlan) sum += `<div class="box"><b>${fromPlan}</b><span>from the floor plan</span></div>`;
   Object.keys(totals).sort().forEach(c => {
     sum += `<div class="box"><b>${escapeHtml(money(totals[c], c))}</b><span>planned in ${escapeHtml(c)}</span></div>`;
     sum += `<div class="box"><b>${escapeHtml(money(spent[c] || 0, c))}</b><span>committed in ${escapeHtml(c)}</span></div>`;
@@ -206,15 +253,16 @@ function render(){
   document.getElementById('mp-sum').innerHTML = sum;
 
   const body = document.getElementById('mp-body');
-  const visible = HIDE_DONE ? ITEMS.filter(i => i.status !== 'done') : ITEMS;
+  const visible = HIDE_DONE ? ROWS.filter(i => i.status !== 'done') : ROWS;
   if (!visible.length){
-    body.innerHTML = `<div class="mp-empty">${ITEMS.length
+    body.innerHTML = `<div class="mp-empty">${ROWS.length
       ? 'Everything here is finished. Nice.'
       : 'Nothing yet — add your first item above.'}</div>`;
     return;
   }
 
   const rooms = [...new Set(visible.map(i => i.room || 'Other'))].sort();
+  // (rooms now include the ones drawn on the floor plan)
   body.innerHTML = rooms.map(room => {
     const list = visible.filter(i => (i.room || 'Other') === room);
     const rdone = list.filter(i => i.status === 'done').length;
@@ -226,15 +274,21 @@ function render(){
       <p class="rsum">${rdone} of ${list.length} done${costTxt ? ' · ' + escapeHtml(costTxt) : ''}</p>
       ${list.map(i => {
         const st = i.status || 'todo';
+        const name = i.fromPlan
+          ? `<span class="mp-name mp-locked" title="Lives on the floor plan — edit it there">${escapeHtml(i.item)}</span>`
+          : `<input class="mp-name" value="${escapeAttr(i.item)}"
+                 onchange="renameItem('${i.id}', this.value)"
+                 onkeydown="if(event.key==='Enter')this.blur()" />`;
+        const tail = i.fromPlan
+          ? `<a class="mp-plan-tag" href="layout/" title="Open the floor plan">📐</a>`
+          : `<button class="mp-del" onclick="delItem('${i.id}')" title="Remove">🗑</button>`;
         return `<div class="mp-item ${st === 'done' ? 'done' : ''}">
           <button class="mp-status ${st}" onclick="cycleStatus('${i.id}')"
                   title="Click to move it along">${STATUS_LABEL[st]}</button>
-          <input class="mp-name" value="${escapeAttr(i.item)}"
-                 onchange="renameItem('${i.id}', this.value)"
-                 onkeydown="if(event.key==='Enter')this.blur()" />
+          ${name}
           ${i.owner ? `<span class="mp-who">${escapeHtml(i.owner)}</span>` : ''}
           <span class="mp-cost">${i.cost != null ? escapeHtml(money(i.cost, i.currency || 'USD')) : '—'}</span>
-          <button class="mp-del" onclick="delItem('${i.id}')" title="Remove">🗑</button>
+          ${tail}
         </div>`;
       }).join('')}
     </div>`;
@@ -243,11 +297,13 @@ function render(){
 
 /* ---------- export ---------- */
 function exportMove(){
-  if (!ITEMS.length){ toast('Nothing to export yet.'); return; }
-  const rows = [['Room','Item','Status','Cost','Currency','Who']];
-  ITEMS.forEach(i => rows.push([
+  const ROWS = allRows();
+  if (!ROWS.length){ toast('Nothing to export yet.'); return; }
+  const rows = [['Room','Item','Status','Cost','Currency','Who','Source']];
+  ROWS.forEach(i => rows.push([
     i.room || 'Other', i.item, STATUS_LABEL[i.status || 'todo'],
-    i.cost != null ? i.cost : '', i.cost != null ? (i.currency || 'USD') : '', i.owner || ''
+    i.cost != null ? i.cost : '', i.cost != null ? (i.currency || 'USD') : '', i.owner || '',
+    i.fromPlan ? 'Floor plan' : 'Added here'
   ]));
   const csv = rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });

@@ -280,6 +280,12 @@
   .switch.on{color:var(--fuchsia);font-weight:600}
   .switch.on .track{background:var(--fuchsia)}
   .switch.on .track::after{transform:translateX(16px)}
+  .tc-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--ink);
+          border:0;border-bottom:1.5px solid transparent;background:none;padding:1px 2px;
+          width:100%;min-width:0;border-radius:4px;transition:.12s ease}
+  .tc-name:hover{border-bottom-color:var(--line)}
+  .tc-name:focus{outline:none;border-bottom-color:var(--fuchsia);background:var(--cream)}
+  .tc-name::placeholder{color:var(--ink);opacity:1}
   .tc-pick{position:relative;margin-top:9px}
   .tc-pick input{width:100%;padding:9px 11px;border-radius:12px;border:1.5px solid var(--line);
           background:var(--cream);font-family:inherit;font-size:13px;color:var(--ink)}
@@ -900,6 +906,16 @@ const seatsAt = no => confirmed().filter(g => g.table_no === no).reduce((a, g) =
 const capOf = no => { const t = TABLES.find(x => x.table_no === no); return t ? (t.seats || DEFAULT_SEATS) : DEFAULT_SEATS; };
 const shapeOf = no => { const t = TABLES.find(x => x.table_no === no); return t ? (t.shape || 'round') : 'round'; };
 const unplaced = () => confirmed().filter(g => !g.table_no);
+const tableName = no => {
+  const t = TABLES.find(x => x.table_no === no);
+  return (t && t.label && t.label.trim()) ? t.label.trim() : 'Table ' + no;
+};
+async function renameTable(no, val){
+  const label = (val || '').trim();
+  if (label === (tableName(no) === 'Table ' + no ? '' : tableName(no))) return;
+  try { await upsertTable(no, { label: label || null }); renderGuests(); renderSeating(); }
+  catch(e){ console.error(e); toast('Could not rename — check the "label" column exists.'); }
+}
 
 function allCircles(){
   const s = new Set();
@@ -983,7 +999,7 @@ async function tweakTable(no, patch){
   try { await upsertTable(no, patch); renderSeating(); } catch(e){ console.error(e); toast('Could not save that.'); }
 }
 async function dropTable(no){
-  if (!confirm(`Remove table ${no}? Anyone seated there goes back to unplaced.`)) return;
+  if (!confirm(`Remove ${tableName(no)}? Anyone seated there goes back to unplaced.`)) return;
   try {
     for (const g of confirmed().filter(x => x.table_no === no)) await patchGuest(g.id, { table_no: null });
     await sb(`tables?table_no=eq.${no}`, { method: 'DELETE' });
@@ -1077,7 +1093,7 @@ function tableSelect(g){
   const cur = g.table_no || '';
   const opts = TABLES.map(t => {
     const free = capOf(t.table_no) - seatsAt(t.table_no) + (g.table_no === t.table_no ? seatsFor(g) : 0);
-    return `<option value="${t.table_no}"${t.table_no === g.table_no ? ' selected' : ''}>Table ${t.table_no} · ${free} free</option>`;
+    return `<option value="${t.table_no}"${t.table_no === g.table_no ? ' selected' : ''}>${escapeHtml(tableName(t.table_no))} · ${free} free</option>`;
   }).join('');
   return `<select class="cellsel" onchange="setTable('${g.id}', this.value)">
       <option value=""${cur ? '' : ' selected'}>Not seated</option>${opts}</select>`;
@@ -1132,8 +1148,12 @@ function renderSeating(){
     const free = cap - taken;
     const pool = left.filter(g => seatsFor(g) <= free);
     html += `<div class="tcard ${taken > cap ? 'over' : (free === 0 ? 'full' : '')}">
-      <div class="tc-top"><h4>Table ${no}</h4>
-        <span class="tc-n ${taken > cap ? 'over' : ''}">${taken}/${cap}${taken > cap ? ' · over' : ''}</span></div>
+      <div class="tc-top">
+        <input class="tc-name" value="${escapeAttr(t.label || '')}" placeholder="Table ${no}"
+               title="Click to rename — e.g. Top table, Cousins, Table 1"
+               onchange="renameTable(${no}, this.value)"
+               onkeydown="if(event.key==='Enter'){this.blur()}if(event.key==='Escape'){this.value='${escapeAttr(t.label || '')}';this.blur()}">
+        <span class="tc-n ${taken > cap ? 'over' : ''}" style="flex:0 0 auto;padding-left:8px">${taken}/${cap}${taken > cap ? ' · over' : ''}</span></div>
       ${tableSvg(taken, cap, shape)}
       <div class="tc-dim">${tableSize(cap, shape)}</div>
       <div class="tc-ctl">
@@ -1172,7 +1192,7 @@ function exportSeating(){
   confirmed().forEach(g => rows.push([
     g.name, circleOf(g), g.side === 'groom' ? "Groom's" : "Bride's", seatsFor(g),
     g.rsvp === true ? 'Confirmed' : 'Awaiting',
-    g.table_no ? 'Table ' + g.table_no : 'Not seated',
+    g.table_no ? tableName(g.table_no) : 'Not seated',
     g.table_no ? (shapeOf(g.table_no) === 'round' ? 'Round' : 'Long') : '',
     g.table_no ? capOf(g.table_no) : '', g.phone || ''
   ]));

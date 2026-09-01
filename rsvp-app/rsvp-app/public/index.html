@@ -280,6 +280,21 @@
   .switch.on{color:var(--fuchsia);font-weight:600}
   .switch.on .track{background:var(--fuchsia)}
   .switch.on .track::after{transform:translateX(16px)}
+  .tc-pick{position:relative;margin-top:9px}
+  .tc-pick input{width:100%;padding:9px 11px;border-radius:12px;border:1.5px solid var(--line);
+          background:var(--cream);font-family:inherit;font-size:13px;color:var(--ink)}
+  .tc-pick input:focus{border-color:var(--fuchsia);background:#fff;outline:none}
+  .tc-pick input::placeholder{color:var(--muted)}
+  .pick-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:#fff;
+          border:1.5px solid var(--line);border-radius:14px;box-shadow:0 14px 34px -16px rgba(177,12,102,.45);
+          max-height:210px;overflow-y:auto;padding:5px}
+  .pick-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;
+          border:0;background:none;padding:8px 10px;border-radius:10px;cursor:pointer;
+          font-family:inherit;font-size:13px;color:var(--ink);text-align:left}
+  .pick-row:hover{background:var(--cream)}
+  .pick-row .s{font-size:11.5px;color:var(--muted);flex:0 0 auto}
+  .pick-row .prov-tag{font-style:italic}
+  .pick-none{padding:10px;font-size:12.5px;color:var(--muted);text-align:center}
   .gchip.prov{border-style:dashed;color:var(--muted);background:var(--cream)}
   .gchip.prov .s{font-style:italic}
   @media(max-width:760px){ th.col-seat,td.col-seat{display:none} }
@@ -921,6 +936,33 @@ async function setTable(id, val){
 }
 function seatHere(sel, no){ const id = sel.value; sel.value = ''; if (id) setTable(id, no); }
 
+/* Type-to-search picker on each table card */
+function pickPool(no, q){
+  const free = capOf(no) - seatsAt(no);
+  const needle = (q || '').trim().toLowerCase();
+  return unplaced().filter(g => seatsFor(g) <= free &&
+    (!needle || g.name.toLowerCase().includes(needle) || circleOf(g).toLowerCase().includes(needle)));
+}
+function pickFilter(inp, no){
+  const list = pickPool(no, inp.value);
+  const box = inp.nextElementSibling;
+  box.innerHTML = list.length
+    ? list.slice(0, 50).map(g => `<button type="button" class="pick-row" onmousedown="pickSeat(event,'${g.id}',${no})">
+        <span>${escapeHtml(g.name)}</span>
+        <span class="s${isProvisional(g) ? ' prov-tag' : ''}">${escapeHtml(circleOf(g))} · ${seatsFor(g)}${isProvisional(g) ? ' awaiting' : ''}</span>
+      </button>`).join('')
+    : `<div class="pick-none">${inp.value.trim() ? 'No match with room at this table' : 'No one left who fits here'}</div>`;
+  box.hidden = false;
+}
+function pickSeat(ev, id, no){ ev.preventDefault(); setTable(id, no); }
+function pickBlur(inp){ setTimeout(() => { const b = inp.nextElementSibling; if (b) b.hidden = true; }, 130); }
+function pickKey(ev, inp, no){
+  if (ev.key === 'Escape'){ inp.value = ''; inp.nextElementSibling.hidden = true; inp.blur(); return; }
+  if (ev.key !== 'Enter') return;
+  const first = pickPool(no, inp.value)[0];
+  if (first) setTable(first.id, no);
+}
+
 async function upsertTable(no, patch){
   const t = TABLES.find(x => x.table_no === no);
   if (t){
@@ -1111,10 +1153,13 @@ function renderSeating(){
       here.map(g => `<span class="gchip${isProvisional(g) ? ' prov' : ''}"${isProvisional(g) ? ' title="Awaiting reply — seats are a placeholder"' : ''}>${escapeHtml(g.name)} <span class="s">${seatsFor(g)}</span>
           <button title="Remove from table" onclick="setTable('${g.id}','')">×</button></span>`).join('') +
       `</div>
-      <select class="tc-add" onchange="seatHere(this, ${no})">
-        <option value="">+ Seat someone here…</option>
-        ${pool.map(g => `<option value="${g.id}">${escapeHtml(g.name)} · ${seatsFor(g)} seat${seatsFor(g) === 1 ? '' : 's'}${isProvisional(g) ? ' (awaiting)' : ''}</option>`).join('')}
-      </select>
+      <div class="tc-pick">
+        <input type="text" placeholder="${pool.length ? '+ Seat someone here — type a name' : 'No one left who fits here'}"
+               ${pool.length ? '' : 'disabled'}
+               oninput="pickFilter(this,${no})" onfocus="pickFilter(this,${no})"
+               onblur="pickBlur(this)" onkeydown="pickKey(event,this,${no})" autocomplete="off">
+        <div class="pick-list" hidden></div>
+      </div>
     </div>`;
   });
   html += '</div>';

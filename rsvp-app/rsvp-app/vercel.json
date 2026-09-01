@@ -2,6 +2,8 @@
   "rewrites": [
     { "source": "/moveplan", "destination": "/moveplan/index.html" },
     { "source": "/moveplan/", "destination": "/moveplan/index.html" },
+    { "source": "/moveplan/layout", "destination": "/moveplan/layout/index.html" },
+    { "source": "/moveplan/layout/", "destination": "/moveplan/layout/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

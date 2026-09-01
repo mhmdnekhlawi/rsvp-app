@@ -281,6 +281,12 @@
   .switch.on .track{background:var(--fuchsia)}
   .switch.on .track::after{transform:translateX(16px)}
   /* ---------- Gifts ---------- */
+  .maxsel{width:52px;padding:5px 6px;border-radius:9px;border:1.5px solid transparent;background:none;
+        font-family:inherit;font-size:14px;color:var(--ink);text-align:center;-moz-appearance:textfield}
+  .maxsel::-webkit-outer-spin-button,.maxsel::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .maxsel:hover{border-color:var(--line);background:var(--cream)}
+  .maxsel:focus{outline:none;border-color:var(--fuchsia);background:#fff}
+  .maxsel.short{border-color:var(--no);color:var(--no);font-weight:700}
   .gift-chip{border:1.5px dashed var(--line);background:none;border-radius:999px;padding:5px 10px;
         font-family:inherit;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:.12s}
   .gift-chip:hover{border-color:var(--fuchsia);color:var(--fuchsia)}
@@ -825,7 +831,11 @@ function renderGuests(){
         </div>
       </td>
       <td><span class="side-badge ${side}">${side==='bride'?"Bride's":"Groom's"}</span></td>
-      <td>${g.max_seats}</td>
+      <td><input class="maxsel${(g.rsvp === true && (g.seats_confirmed || 0) > (g.max_seats || 0)) ? ' short' : ''}"
+            type="number" min="1" max="20" value="${g.max_seats}"
+            title="Seats this guest may bring — click to change"
+            onchange="setMaxSeats('${g.id}', this.value)"
+            onkeydown="if(event.key==='Enter')this.blur()"></td>
       <td><span class="status ${sclass}"><span class="d"></span>${status}</span></td>
       <td class="col-seat">${circleSelect(g)}</td>
       <td class="col-seat">${tableSelect(g)}</td>
@@ -1030,6 +1040,23 @@ async function patchGuest(id, patch){
   const g = GUESTS.find(x => String(x.id) === String(id));
   if (g) Object.assign(g, patch);
 }
+async function setMaxSeats(id, val){
+  const g = GUESTS.find(x => String(x.id) === String(id));
+  if (!g) return;
+  let n = parseInt(val, 10);
+  if (isNaN(n) || n < 1) n = 1;
+  if (n > 20) n = 20;
+  if (n === g.max_seats){ renderGuests(); return; }
+  try {
+    await patchGuest(id, { max_seats: n });
+    if (g.rsvp === true && (g.seats_confirmed || 0) > n)
+      toast(`${firstName(g.name)} already confirmed ${g.seats_confirmed} — that is now above their limit.`);
+    else
+      toast('Saved.');
+    renderStats(); renderGuests(); renderSeating();
+  } catch(e){ console.error(e); toast('Could not save that.'); }
+}
+
 async function setCircle(id, val){
   if (val === '__new'){
     const n = prompt('Name the new circle — e.g. Cousins, Work, School friends');

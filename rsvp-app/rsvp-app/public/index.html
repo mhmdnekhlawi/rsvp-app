@@ -280,6 +280,10 @@
   .switch.on{color:var(--fuchsia);font-weight:600}
   .switch.on .track{background:var(--fuchsia)}
   .switch.on .track::after{transform:translateX(16px)}
+  .plan-modal .modal{max-width:min(1040px,96vw)}
+  .plan-scroll{overflow:auto;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:10px;margin-bottom:16px}
+  .plan-scroll svg{display:block;margin:0 auto;max-width:100%;height:auto}
+  .plan-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
   .tc-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--ink);
           border:0;border-bottom:1.5px solid transparent;background:none;padding:1px 2px;
           width:100%;min-width:0;border-radius:4px;transition:.12s ease}
@@ -400,11 +404,26 @@
           <button class="btn btn-ghost btn-sm" onclick="autoSeat(false)">Seat unplaced guests</button>
           <button class="btn btn-ghost btn-sm" onclick="autoSeat(true)">Rebuild all</button>
           <button class="btn btn-ghost btn-sm" onclick="addTable()">+ Add table</button>
+          <button class="btn btn-ghost btn-sm" onclick="showPlan()">🗺 Floor plan</button>
           <button class="btn btn-ghost btn-sm" onclick="exportSeating()">⬇ Export CSV</button>
         </div>
       </div>
       <p class="seat-sub" id="seat-sub"></p>
       <div id="seat-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FLOOR PLAN MODAL ============ -->
+<div class="modal-bg plan-modal" id="plan-modal">
+  <div class="modal">
+    <h3>Floor plan</h3>
+    <div class="plan-scroll" id="plan-holder"></div>
+    <div class="plan-bar">
+      <button class="btn btn-ghost" onclick="closePlan()">Close</button>
+      <button class="btn btn-ghost" onclick="downloadPlanSvg()">⬇ SVG</button>
+      <button class="btn btn-ghost" onclick="downloadPlanPng()">⬇ PNG</button>
+      <button class="btn btn-primary" onclick="printPlan()">🖨 Print / PDF</button>
     </div>
   </div>
 </div>
@@ -1184,6 +1203,134 @@ function renderSeating(){
   });
   html += '</div>';
   body.innerHTML = html;
+}
+
+/* ---------- floor plan drawing ---------- */
+const PLAN_INK = '#3D1226', PLAN_LINE = '#E7CFDC', PLAN_PINK = '#E11584', PLAN_MUTED = '#8A6377';
+
+function planSeatDot(x, y, filled){
+  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${filled ? PLAN_PINK : '#fff'}" stroke="${filled ? PLAN_PINK : PLAN_LINE}" stroke-width="1.6"/>`;
+}
+function planTableShape(cx, cy, cap, taken, shape){
+  const n = Math.max(cap, taken);
+  let out = '';
+  if (shape === 'round'){
+    const ring = 50, R = 30;
+    out += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="#FFF9F5" stroke="${PLAN_LINE}" stroke-width="2"/>`;
+    for (let i = 0; i < n; i++){
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      out += planSeatDot(cx + Math.cos(a) * ring, cy + Math.sin(a) * ring, i < taken);
+    }
+  } else {
+    const r = rectSplit(n), per = Math.max(r.top, r.bottom);
+    const w = Math.min(150, Math.max(60, per * 22 + 18)), h = 34, L = cx - w / 2, T = cy - h / 2;
+    out += `<rect x="${L}" y="${T}" width="${w}" height="${h}" rx="5" fill="#FFF9F5" stroke="${PLAN_LINE}" stroke-width="2"/>`;
+    let k = 0; const put = (x, y) => { out += planSeatDot(x, y, k < taken); k++; };
+    for (let i = 0; i < r.top; i++) put(L + w * (i + .5) / r.top, T - 12);
+    if (r.heads > 0) put(L + w + 13, cy);
+    for (let i = r.bottom - 1; i >= 0; i--) put(L + w * (i + .5) / r.bottom, T + h + 12);
+    if (r.heads > 1) put(L - 13, cy);
+  }
+  return out;
+}
+function esc4svg(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function buildPlanSvg(){
+  const tables = TABLES.slice().sort((a, b) => a.table_no - b.table_no);
+  if (!tables.length) return null;
+  const conf = confirmed();
+
+  // one printed line per person, so a family of 3 shows as 3 names where known
+  const linesFor = no => conf.filter(g => g.table_no === no).map(g => {
+    const extra = seatsFor(g) - 1;
+    return escapeHtml ? g.name + (extra > 0 ? ` +${extra}` : '') : g.name;
+  });
+
+  const maxLines = Math.max(1, ...tables.map(t => linesFor(t.table_no).length));
+  const cols = tables.length <= 2 ? tables.length : (tables.length <= 6 ? 3 : 4);
+  const rows = Math.ceil(tables.length / cols);
+  const cellW = 300, headH = 62, drawH = 150, lineH = 19;
+  const cellH = headH + drawH + maxLines * lineH + 26;
+  const padX = 40, padTop = 118, padBottom = 44;
+  const W = cols * cellW + padX * 2;
+  const H = padTop + rows * cellH + padBottom;
+
+  const title = esc4svg((CONFIG && CONFIG.event_name) || 'Seating plan');
+  const bits = [];
+  if (CONFIG && CONFIG.event_date) bits.push(CONFIG.event_date);
+  if (CONFIG && CONFIG.venue) bits.push(CONFIG.venue);
+  const subtitle = esc4svg(bits.join('  ·  '));
+  const heads = conf.reduce((a, g) => a + seatsFor(g), 0);
+  const foot = esc4svg(`${heads} guests · ${tables.length} tables · drawn at ${SEAT_SPACING} cm per seat · ${new Date().toLocaleDateString()}`);
+
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Georgia, 'Times New Roman', serif">
+  <rect width="${W}" height="${H}" fill="#FFFDFB"/>
+  <text x="${W/2}" y="56" text-anchor="middle" font-size="30" fill="${PLAN_INK}">${title}</text>
+  <text x="${W/2}" y="82" text-anchor="middle" font-size="14" fill="${PLAN_MUTED}" font-family="Helvetica, Arial, sans-serif">${subtitle}</text>
+  <line x1="${padX}" y1="${padTop - 22}" x2="${W - padX}" y2="${padTop - 22}" stroke="${PLAN_LINE}" stroke-width="1.5"/>`;
+
+  tables.forEach((t, i) => {
+    const no = t.table_no, cap = capOf(no), shape = shapeOf(no), taken = seatsAt(no);
+    const x0 = padX + (i % cols) * cellW, y0 = padTop + Math.floor(i / cols) * cellH;
+    const cx = x0 + cellW / 2;
+    s += `<text x="${cx}" y="${y0 + 26}" text-anchor="middle" font-size="18" fill="${PLAN_INK}">${esc4svg(tableName(no))}</text>`;
+    s += `<text x="${cx}" y="${y0 + 46}" text-anchor="middle" font-size="11.5" fill="${PLAN_MUTED}" font-family="Helvetica, Arial, sans-serif">${taken} of ${cap} seats · ${esc4svg(tableSize(cap, shape))}</text>`;
+    s += planTableShape(cx, y0 + headH + 68, cap, taken, shape);
+    linesFor(no).forEach((nm, j) => {
+      s += `<text x="${cx}" y="${y0 + headH + drawH + j * lineH}" text-anchor="middle" font-size="13.5" fill="${PLAN_INK}" font-family="Helvetica, Arial, sans-serif">${esc4svg(nm)}</text>`;
+    });
+  });
+
+  s += `<text x="${W/2}" y="${H - 18}" text-anchor="middle" font-size="11.5" fill="${PLAN_MUTED}" font-family="Helvetica, Arial, sans-serif">${foot}</text></svg>`;
+  return s;
+}
+
+function showPlan(){
+  const svg = buildPlanSvg();
+  if (!svg){ toast('Build some tables first.'); return; }
+  document.getElementById('plan-holder').innerHTML = svg;
+  document.getElementById('plan-modal').classList.add('show');
+}
+function closePlan(){ document.getElementById('plan-modal').classList.remove('show'); }
+
+function planBlob(){ return new Blob([buildPlanSvg()], { type: 'image/svg+xml;charset=utf-8' }); }
+function saveAs(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 600);
+}
+function downloadPlanSvg(){ saveAs(planBlob(), 'floor-plan.svg'); toast('Downloaded.'); }
+
+function downloadPlanPng(){
+  const svg = buildPlanSvg();
+  if (!svg) return;
+  const m = svg.match(/width="(\d+)" height="(\d+)"/);
+  const w = m ? +m[1] : 1200, h = m ? +m[2] : 900, scale = 2;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = w * scale; c.height = h * scale;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#FFFDFB'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(b => { saveAs(b, 'floor-plan.png'); toast('Downloaded.'); }, 'image/png');
+  };
+  img.onerror = () => toast('PNG failed — use the SVG or Print button.');
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+function printPlan(){
+  const svg = buildPlanSvg();
+  if (!svg) return;
+  const w = window.open('', '_blank');
+  if (!w){ toast('Allow pop-ups, or download the PNG instead.'); return; }
+  w.document.write(`<!doctype html><html><head><title>Seating plan</title>
+    <style>@page{size:landscape;margin:12mm}body{margin:0;display:flex;justify-content:center}
+    svg{width:100%;height:auto}</style></head><body>${svg}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 400);
 }
 
 /* ---------- export ---------- */

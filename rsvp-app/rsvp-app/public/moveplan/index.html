@@ -1,1 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Move plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../shared/app.css" />
+</head>
+<body>
 
+<div id="page-move" class="page active">
+  <div class="dash">
+    <div id="hubnav"></div>
+
+    <div class="dash-top">
+      <h1 class="dash-title"><span class="dot"></span>Move plan</h1>
+      <div class="dash-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportMove()">⬇ Export CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Log out</button>
+      </div>
+    </div>
+
+    <div class="mp-sum" id="mp-sum"></div>
+    <div class="mp-bar"><i id="mp-bar-fill" style="width:0%"></i></div>
+
+    <div class="panel">
+      <h3>Add something</h3>
+      <div class="mp-add">
+        <div class="field">
+          <label for="mp-item">Item</label>
+          <input id="mp-item" placeholder="e.g. Sofa" onkeydown="if(event.key==='Enter')addMoveItem()" />
+        </div>
+        <div class="field">
+          <label for="mp-room">Room</label>
+          <input id="mp-room" list="mp-rooms" placeholder="Living room" />
+          <datalist id="mp-rooms"></datalist>
+        </div>
+        <div class="field">
+          <label for="mp-cost">Cost</label>
+          <input id="mp-cost" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+        </div>
+        <div class="field">
+          <label for="mp-currency">Currency</label>
+          <select id="mp-currency">
+            <option value="USD">USD $</option>
+            <option value="EGP">EGP £</option>
+            <option value="EUR">EUR €</option>
+            <option value="AED">AED</option>
+            <option value="SAR">SAR</option>
+            <option value="GBP">GBP £</option>
+            <option value="LBP">LBP</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="mp-owner">Who</label>
+          <input id="mp-owner" list="mp-owners" placeholder="Optional" />
+          <datalist id="mp-owners"></datalist>
+        </div>
+        <button class="btn btn-primary" onclick="addMoveItem()">+ Add</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="seat-top">
+        <h3>Everything to sort out</h3>
+        <div class="seat-actions">
+          <label class="switch" id="hide-done-sw" onclick="toggleDone()">
+            <span class="track"></span><span>Hide finished</span></label>
+        </div>
+      </div>
+      <div id="mp-body"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="../shared/core.js"></script>
+<script>
+/* ============================================================
+   MOVE PLAN
+   Table: moveplan_items(id, room, item, status, cost, currency, owner, note, created_at)
+   status: 'todo' | 'ordered' | 'delivered' | 'done'
+   ============================================================ */
+const ROOM_SUGGESTIONS = ['Living room','Bedroom','Kitchen','Bathroom','Dining room',
+                          'Balcony','Utilities','Paperwork','Other'];
+const FLOW = ['todo','ordered','delivered','done'];
+const STATUS_LABEL = { todo:'To buy', ordered:'Ordered', delivered:'Delivered', done:'Done' };
+const SIGN = { USD:'$', EGP:'E£', EUR:'€', GBP:'£', AED:'AED ', SAR:'SAR ', LBP:'LL ' };
+
+let ITEMS = [], HIDE_DONE = localStorage.getItem('mp_hide_done') === '1';
+
+const money = (n, c) => (SIGN[c] || (c + ' ')) + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+async function boot(){
+  if (!requireHost()) return;
+  renderNav('moveplan');
+  try {
+    ITEMS = await sb('moveplan_items?select=*&order=created_at.asc') || [];
+  } catch(e){
+    console.error(e);
+    document.getElementById('mp-body').innerHTML =
+      '<div class="mp-empty">Could not load. Run <b>moveplan-setup.sql</b> in Supabase, then refresh.</div>';
+    return;
+  }
+  render();
+}
+
+/* ---------- writes ---------- */
+async function addMoveItem(){
+  const item = document.getElementById('mp-item').value.trim();
+  if (!item){ toast('Give it a name first.'); return; }
+  const costRaw = document.getElementById('mp-cost').value;
+  const row = {
+    item,
+    room: document.getElementById('mp-room').value.trim() || 'Other',
+    cost: costRaw === '' ? null : Number(costRaw),
+    currency: document.getElementById('mp-currency').value,
+    owner: document.getElementById('mp-owner').value.trim() || null,
+    status: 'todo'
+  };
+  try {
+    const saved = await sb('moveplan_items', {
+      method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(row)
+    });
+    ITEMS.push(saved && saved[0] ? saved[0] : row);
+    document.getElementById('mp-item').value = '';
+    document.getElementById('mp-cost').value = '';
+    document.getElementById('mp-item').focus();
+    render();
+  } catch(e){ console.error(e); toast('Could not save — check the SQL step ran.'); }
+}
+
+async function patchItem(id, patch){
+  await sb('moveplan_items?id=eq.' + id, { method: 'PATCH', body: JSON.stringify(patch) });
+  const it = ITEMS.find(x => String(x.id) === String(id));
+  if (it) Object.assign(it, patch);
+}
+async function cycleStatus(id){
+  const it = ITEMS.find(x => String(x.id) === String(id));
+  if (!it) return;
+  const next = FLOW[(FLOW.indexOf(it.status || 'todo') + 1) % FLOW.length];
+  try { await patchItem(id, { status: next }); render(); }
+  catch(e){ console.error(e); toast('Could not update.'); }
+}
+async function renameItem(id, val){
+  const v = (val || '').trim();
+  if (!v) return render();
+  try { await patchItem(id, { item: v }); render(); }
+  catch(e){ console.error(e); toast('Could not rename.'); }
+}
+async function setCost(id, val){
+  const n = val === '' ? null : Number(val);
+  try { await patchItem(id, { cost: n }); render(); }
+  catch(e){ console.error(e); toast('Could not save.'); }
+}
+async function delItem(id){
+  const it = ITEMS.find(x => String(x.id) === String(id));
+  if (!confirm(`Remove ${it ? it.item : 'this'}?`)) return;
+  try {
+    await sb('moveplan_items?id=eq.' + id, { method: 'DELETE' });
+    ITEMS = ITEMS.filter(x => String(x.id) !== String(id));
+    render();
+  } catch(e){ console.error(e); toast('Could not remove.'); }
+}
+function toggleDone(){
+  HIDE_DONE = !HIDE_DONE;
+  localStorage.setItem('mp_hide_done', HIDE_DONE ? '1' : '0');
+  render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const sw = document.getElementById('hide-done-sw');
+  sw.classList.toggle('on', HIDE_DONE);
+
+  document.getElementById('mp-rooms').innerHTML =
+    [...new Set(ROOM_SUGGESTIONS.concat(ITEMS.map(i => i.room).filter(Boolean)))]
+      .map(r => `<option value="${escapeAttr(r)}">`).join('');
+  document.getElementById('mp-owners').innerHTML =
+    [...new Set(ITEMS.map(i => i.owner).filter(Boolean))]
+      .map(o => `<option value="${escapeAttr(o)}">`).join('');
+
+  const done = ITEMS.filter(i => i.status === 'done').length;
+  const pct = ITEMS.length ? Math.round(done / ITEMS.length * 100) : 0;
+  document.getElementById('mp-bar-fill').style.width = pct + '%';
+
+  // money is kept separate per currency — no invented exchange rates
+  const totals = {}, spent = {};
+  ITEMS.forEach(i => {
+    if (i.cost == null) return;
+    const c = i.currency || 'USD';
+    totals[c] = (totals[c] || 0) + Number(i.cost);
+    if (i.status === 'delivered' || i.status === 'done') spent[c] = (spent[c] || 0) + Number(i.cost);
+  });
+
+  let sum = `<div class="box"><b>${done}/${ITEMS.length}</b><span>done · ${pct}%</span></div>`;
+  Object.keys(totals).sort().forEach(c => {
+    sum += `<div class="box"><b>${escapeHtml(money(totals[c], c))}</b><span>planned in ${escapeHtml(c)}</span></div>`;
+    sum += `<div class="box"><b>${escapeHtml(money(spent[c] || 0, c))}</b><span>committed in ${escapeHtml(c)}</span></div>`;
+  });
+  document.getElementById('mp-sum').innerHTML = sum;
+
+  const body = document.getElementById('mp-body');
+  const visible = HIDE_DONE ? ITEMS.filter(i => i.status !== 'done') : ITEMS;
+  if (!visible.length){
+    body.innerHTML = `<div class="mp-empty">${ITEMS.length
+      ? 'Everything here is finished. Nice.'
+      : 'Nothing yet — add your first item above.'}</div>`;
+    return;
+  }
+
+  const rooms = [...new Set(visible.map(i => i.room || 'Other'))].sort();
+  body.innerHTML = rooms.map(room => {
+    const list = visible.filter(i => (i.room || 'Other') === room);
+    const rdone = list.filter(i => i.status === 'done').length;
+    const rcost = {};
+    list.forEach(i => { if (i.cost != null){ const c = i.currency || 'USD'; rcost[c] = (rcost[c] || 0) + Number(i.cost); } });
+    const costTxt = Object.keys(rcost).map(c => money(rcost[c], c)).join(' + ');
+    return `<div class="mp-room">
+      <h4>${escapeHtml(room)}</h4>
+      <p class="rsum">${rdone} of ${list.length} done${costTxt ? ' · ' + escapeHtml(costTxt) : ''}</p>
+      ${list.map(i => {
+        const st = i.status || 'todo';
+        return `<div class="mp-item ${st === 'done' ? 'done' : ''}">
+          <button class="mp-status ${st}" onclick="cycleStatus('${i.id}')"
+                  title="Click to move it along">${STATUS_LABEL[st]}</button>
+          <input class="mp-name" value="${escapeAttr(i.item)}"
+                 onchange="renameItem('${i.id}', this.value)"
+                 onkeydown="if(event.key==='Enter')this.blur()" />
+          ${i.owner ? `<span class="mp-who">${escapeHtml(i.owner)}</span>` : ''}
+          <span class="mp-cost">${i.cost != null ? escapeHtml(money(i.cost, i.currency || 'USD')) : '—'}</span>
+          <button class="mp-del" onclick="delItem('${i.id}')" title="Remove">🗑</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- export ---------- */
+function exportMove(){
+  if (!ITEMS.length){ toast('Nothing to export yet.'); return; }
+  const rows = [['Room','Item','Status','Cost','Currency','Who']];
+  ITEMS.forEach(i => rows.push([
+    i.room || 'Other', i.item, STATUS_LABEL[i.status || 'todo'],
+    i.cost != null ? i.cost : '', i.cost != null ? (i.currency || 'USD') : '', i.owner || ''
+  ]));
+  const csv = rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'move-plan.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('Downloaded.');
+}
+
+boot();
+</script>
+</body>
+</html>

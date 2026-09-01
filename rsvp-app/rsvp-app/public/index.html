@@ -272,6 +272,16 @@
   .cellsel:focus{border-color:var(--fuchsia);outline:none}
   .seat-empty{text-align:center;color:var(--muted);font-size:14px;padding:26px 12px;
               border:1.5px dashed var(--line);border-radius:16px}
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);
+          cursor:pointer;user-select:none;padding:5px 4px}
+  .switch .track{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;transition:.15s ease;flex:0 0 auto}
+  .switch .track::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+          background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:.15s ease}
+  .switch.on{color:var(--fuchsia);font-weight:600}
+  .switch.on .track{background:var(--fuchsia)}
+  .switch.on .track::after{transform:translateX(16px)}
+  .gchip.prov{border-style:dashed;color:var(--muted);background:var(--cream)}
+  .gchip.prov .s{font-style:italic}
   @media(max-width:760px){ th.col-seat,td.col-seat{display:none} }
 </style>
 </head>
@@ -364,6 +374,8 @@
       <div class="seat-top">
         <h3>Seating plan</h3>
         <div class="seat-actions">
+          <label class="switch" id="strict-sw" onclick="toggleStrict()" title="Include guests who haven't replied yet">
+            <span class="track"></span><span id="strict-lbl">Confirmed only</span></label>
           <button class="btn btn-ghost btn-sm" onclick="autoSeat(false)">Seat unplaced guests</button>
           <button class="btn btn-ghost btn-sm" onclick="autoSeat(true)">Rebuild all</button>
           <button class="btn btn-ghost btn-sm" onclick="addTable()">+ Add table</button>
@@ -851,9 +863,25 @@ const SEAT_SPACING = 65;               // cm of table edge per guest
 const DEFAULT_SEATS = 10;
 
 const getTables = () => sb('tables?select=*&order=table_no.asc');
-const confirmed = () => GUESTS.filter(g => g.rsvp === true && (g.seats_confirmed || 0) > 0);
+
+// Confirmed-only mode (default) seats people who said yes, using the seats they
+// confirmed. Switched off, it also seats anyone still awaiting a reply, using
+// their max seats as a placeholder. Declines are never seated either way.
+let SEAT_STRICT = localStorage.getItem('seat_strict') !== '0';
+const isProvisional = g => g.rsvp !== true;
+const seatsFor = g => g.rsvp === true
+  ? (g.seats_confirmed || 0)
+  : (SEAT_STRICT ? 0 : (g.max_seats || 1));
+const confirmed = () => GUESTS.filter(g => g.rsvp !== false && seatsFor(g) > 0);
+
+function toggleStrict(){
+  SEAT_STRICT = !SEAT_STRICT;
+  localStorage.setItem('seat_strict', SEAT_STRICT ? '1' : '0');
+  renderGuests(); renderSeating();
+  toast(SEAT_STRICT ? 'Seating confirmed guests only.' : 'Everyone who hasn\'t declined is now seatable.');
+}
 const circleOf = g => g.circle || (g.side === 'groom' ? "Groom's side" : "Bride's side");
-const seatsAt = no => confirmed().filter(g => g.table_no === no).reduce((a, g) => a + (g.seats_confirmed || 0), 0);
+const seatsAt = no => confirmed().filter(g => g.table_no === no).reduce((a, g) => a + seatsFor(g), 0);
 const capOf = no => { const t = TABLES.find(x => x.table_no === no); return t ? (t.seats || DEFAULT_SEATS) : DEFAULT_SEATS; };
 const shapeOf = no => { const t = TABLES.find(x => x.table_no === no); return t ? (t.shape || 'round') : 'round'; };
 const unplaced = () => confirmed().filter(g => !g.table_no);
@@ -937,7 +965,7 @@ async function autoSeat(rebuild){
 
     for (const circle of Object.keys(byCircle)){
       for (const g of byCircle[circle]){
-        const need = g.seats_confirmed || 1;
+        const need = seatsFor(g);
         const nos = TABLES.map(t => t.table_no);
         // first choice: a table that already holds this circle and has room
         let target = nos.find(no =>
@@ -1001,10 +1029,12 @@ function circleSelect(g){
       ${opts}<option value="__new">+ New circle…</option></select>`;
 }
 function tableSelect(g){
-  if (g.rsvp !== true) return '<span style="color:var(--muted);font-size:12px">—</span>';
+  if (g.rsvp === false) return '<span style="color:var(--muted);font-size:12px">—</span>';
+  if (SEAT_STRICT && g.rsvp !== true)
+    return '<span style="color:var(--muted);font-size:12px" title="Turn off &quot;Confirmed only&quot; in the seating panel to seat them now">awaiting</span>';
   const cur = g.table_no || '';
   const opts = TABLES.map(t => {
-    const free = capOf(t.table_no) - seatsAt(t.table_no) + (g.table_no === t.table_no ? (g.seats_confirmed || 0) : 0);
+    const free = capOf(t.table_no) - seatsAt(t.table_no) + (g.table_no === t.table_no ? seatsFor(g) : 0);
     return `<option value="${t.table_no}"${t.table_no === g.table_no ? ' selected' : ''}>Table ${t.table_no} · ${free} free</option>`;
   }).join('');
   return `<select class="cellsel" onchange="setTable('${g.id}', this.value)">
@@ -1017,24 +1047,33 @@ function renderSeating(){
   if (!panel || panel.hidden) return;
   const body = document.getElementById('seat-body');
   const sub = document.getElementById('seat-sub');
+  const sw = document.getElementById('strict-sw');
+  if (sw){
+    sw.classList.toggle('on', !SEAT_STRICT);
+    document.getElementById('strict-lbl').textContent = SEAT_STRICT ? 'Confirmed only' : 'Include awaiting replies';
+  }
   const conf = confirmed();
-  const heads = conf.reduce((a, g) => a + (g.seats_confirmed || 0), 0);
+  const heads = conf.reduce((a, g) => a + seatsFor(g), 0);
+  const prov = conf.filter(isProvisional).length;
   const laid = TABLES.reduce((a, t) => a + (t.seats || DEFAULT_SEATS), 0);
   const left = unplaced();
 
-  sub.textContent = `${heads} confirmed seats · ${TABLES.length} table${TABLES.length === 1 ? '' : 's'} · ${laid} seats laid out`
+  sub.textContent = `${heads} seats${prov ? ` (${prov} still awaiting a reply, shown dashed)` : ' confirmed'}`
+    + ` · ${TABLES.length} table${TABLES.length === 1 ? '' : 's'} · ${laid} seats laid out`
     + (left.length ? ` · ${left.length} guest${left.length === 1 ? '' : 's'} not placed yet` : ' · everyone seated')
     + `. Sizes assume ${SEAT_SPACING} cm per guest.`;
 
   if (!conf.length){
-    body.innerHTML = '<div class="seat-empty">No confirmed replies yet. Once guests start saying yes they show up here.</div>';
+    body.innerHTML = SEAT_STRICT
+      ? '<div class="seat-empty">No confirmed replies yet. Flip “Confirmed only” off above to start planning with the full invite list.</div>'
+      : '<div class="seat-empty">Nobody to seat yet — add some guests first.</div>';
     return;
   }
 
   let html = '';
   if (left.length){
     html += `<div class="unseated"><div class="u-t">Not placed yet</div><div class="chiprow">` +
-      left.map(g => `<span class="gchip">${escapeHtml(g.name)} <span class="s">${g.seats_confirmed}</span></span>`).join('') +
+      left.map(g => `<span class="gchip${isProvisional(g) ? ' prov' : ''}"${isProvisional(g) ? ' title="Awaiting reply — seats are a placeholder"' : ''}>${escapeHtml(g.name)} <span class="s">${seatsFor(g)}</span></span>`).join('') +
       `</div></div>`;
   }
 
@@ -1049,7 +1088,7 @@ function renderSeating(){
     const here = conf.filter(g => g.table_no === no);
     const circles = [...new Set(here.map(circleOf))].join(' · ');
     const free = cap - taken;
-    const pool = left.filter(g => (g.seats_confirmed || 0) <= free);
+    const pool = left.filter(g => seatsFor(g) <= free);
     html += `<div class="tcard ${taken > cap ? 'over' : (free === 0 ? 'full' : '')}">
       <div class="tc-top"><h4>Table ${no}</h4>
         <span class="tc-n ${taken > cap ? 'over' : ''}">${taken}/${cap}${taken > cap ? ' · over' : ''}</span></div>
@@ -1069,12 +1108,12 @@ function renderSeating(){
       </div>
       ${circles ? `<div class="tc-dim" style="margin:0 0 8px">${escapeHtml(circles)}</div>` : ''}
       <div class="chiprow">` +
-      here.map(g => `<span class="gchip">${escapeHtml(g.name)} <span class="s">${g.seats_confirmed}</span>
+      here.map(g => `<span class="gchip${isProvisional(g) ? ' prov' : ''}"${isProvisional(g) ? ' title="Awaiting reply — seats are a placeholder"' : ''}>${escapeHtml(g.name)} <span class="s">${seatsFor(g)}</span>
           <button title="Remove from table" onclick="setTable('${g.id}','')">×</button></span>`).join('') +
       `</div>
       <select class="tc-add" onchange="seatHere(this, ${no})">
         <option value="">+ Seat someone here…</option>
-        ${pool.map(g => `<option value="${g.id}">${escapeHtml(g.name)} · ${g.seats_confirmed} seat${g.seats_confirmed === 1 ? '' : 's'}</option>`).join('')}
+        ${pool.map(g => `<option value="${g.id}">${escapeHtml(g.name)} · ${seatsFor(g)} seat${seatsFor(g) === 1 ? '' : 's'}${isProvisional(g) ? ' (awaiting)' : ''}</option>`).join('')}
       </select>
     </div>`;
   });
@@ -1084,9 +1123,10 @@ function renderSeating(){
 
 /* ---------- export ---------- */
 function exportSeating(){
-  const rows = [['Guest', 'Circle', 'Side', 'Seats', 'Table', 'Shape', 'Table seats', 'Phone']];
+  const rows = [['Guest', 'Circle', 'Side', 'Seats', 'Reply', 'Table', 'Shape', 'Table seats', 'Phone']];
   confirmed().forEach(g => rows.push([
-    g.name, circleOf(g), g.side === 'groom' ? "Groom's" : "Bride's", g.seats_confirmed,
+    g.name, circleOf(g), g.side === 'groom' ? "Groom's" : "Bride's", seatsFor(g),
+    g.rsvp === true ? 'Confirmed' : 'Awaiting',
     g.table_no ? 'Table ' + g.table_no : 'Not seated',
     g.table_no ? (shapeOf(g.table_no) === 'round' ? 'Round' : 'Long') : '',
     g.table_no ? capOf(g.table_no) : '', g.phone || ''

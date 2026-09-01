@@ -373,3 +373,7 @@
 .mp-del:hover{color:var(--no)}
 .mp-empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 12px;
         border:1.5px dashed var(--line);border-radius:16px}
+
+.mp-locked{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--ink);padding:3px 4px}
+.mp-plan-tag{text-decoration:none;font-size:15px;opacity:.5;padding:2px 4px;line-height:1}
+.mp-plan-tag:hover{opacity:1}

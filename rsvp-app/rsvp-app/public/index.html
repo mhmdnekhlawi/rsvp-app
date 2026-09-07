@@ -350,8 +350,8 @@ function renderThanks(guest){
     body.innerHTML = `
       <div class="thanks">
         <div class="check">✓</div>
-        <h3>You're confirmed!</h3>
-        <p>We've saved <strong>${s} ${s===1?'seat':'seats'}</strong> for you, ${escapeHtml(firstName(guest.name))}. See you there 💗</p>
+        <h3>You're confirmed</h3>
+        <p>We've saved <strong>${s} ${s===1?'seat':'seats'}</strong> for you, ${escapeHtml(firstName(guest.name))}. We can't wait to see you.</p>
         <button class="edit-link" onclick="editResponse()">Change my response</button>
       </div>
       ${buildDetails()}`;
@@ -365,8 +365,8 @@ const ICON = {
   glass: '<path d="M6 3h5l-1 7a2.5 2.5 0 0 1-5 0z"/><path d="M13 3h5l-1 7a2.5 2.5 0 0 1-5 0z"/><path d="M7.5 12.5V21M15.5 12.5V21"/><path d="M5 21h5M13 21h5"/>'
 };
 const svgIcon = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
-const cell = (icon, k, v) =>
-  `<div class="dcell">${svgIcon(icon)}<div class="k">${escapeHtml(k)}</div>${v ? `<div class="v">${escapeHtml(v)}</div>` : ''}</div>`;
+const cell = (icon, k, v, style) =>
+  `<div class="dcell">${svgIcon(icon)}<div class="k">${escapeHtml(k)}</div>${v ? `<div class="v ${style || ''}">${escapeHtml(v)}</div>` : ''}</div>`;
 
 function buildDetails(){
   const c = CONFIG || {};
@@ -380,7 +380,7 @@ function buildDetails(){
   const cells = [];
   if (date)  cells.push(cell(ICON.cal, date, ''));
   if (time)  cells.push(cell(ICON.clock, 'at', time));
-  if (venue || address) cells.push(cell(ICON.pin, venue || 'Venue', address));
+  if (venue || address) cells.push(cell(ICON.pin, venue || 'Venue', address, 'plain'));
   cells.push(cell(ICON.glass, 'Dinner', 'to follow'));
 
   if (cells.length < 2){

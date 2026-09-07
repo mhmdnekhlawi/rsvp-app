@@ -608,3 +608,126 @@
 .closing{margin-top:34px}
 .closing span{font-size:13.5px;letter-spacing:.22em;line-height:1.7}
 .closing .sprig{width:150px;height:32px;margin-top:18px}
+
+
+/* ============================================================
+   THE ARCADE
+   Each row is two bays under a cornice, with paired-column piers
+   between and either side — after the venue colonnade.
+   ============================================================ */
+.arcade{margin-top:30px}
+.arow{position:relative;padding:0 20px 30px;margin-bottom:6px}
+.arow:last-child{margin-bottom:0}
+
+/* the entablature the arches spring from */
+.cornice{position:relative;height:9px;margin:0 4px}
+.cornice::before,.cornice::after{
+  content:'';position:absolute;left:0;right:0;height:1px;background:var(--gold-soft);
+}
+.cornice::before{top:0}
+.cornice::after{top:4px;left:6px;right:6px}
+
+.bays{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+
+.dcell{
+  position:relative;padding:30px 20px 26px;text-align:center;border:0;
+  background:linear-gradient(180deg,var(--stone) 0%,rgba(244,239,228,0) 78%);
+  border-radius:120px 120px 0 0;
+}
+.dcell::before{
+  content:'';position:absolute;left:12px;right:12px;top:6px;bottom:0;
+  border:1px solid var(--gold-soft);border-bottom:0;
+  border-radius:108px 108px 0 0;pointer-events:none;
+}
+.dcell svg{position:relative;width:24px;height:24px;stroke:var(--fuchsia-deep);fill:none;
+  stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.dcell .k{
+  position:relative;font-family:var(--formal);font-size:14.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink);margin-top:11px;line-height:1.5;font-weight:600;
+}
+.dcell .v{
+  position:relative;font-family:var(--formal);font-size:13px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-top:4px;line-height:1.5;
+}
+/* addresses and times are prose — no shouting, and let them wrap */
+.dcell .v.plain{
+  text-transform:none;letter-spacing:.01em;font-size:14px;line-height:1.55;
+  max-width:19ch;margin-left:auto;margin-right:auto;overflow-wrap:break-word;
+}
+
+/* piers: bottom-aligned, straddling the bay edges */
+.pier{
+  position:absolute;bottom:0;width:34px;height:62px;color:var(--gold);
+  pointer-events:none;
+}
+.pier svg{width:34px;height:62px;display:block}
+.pier.p-l{left:3px}
+.pier.p-m{left:50%;transform:translateX(-50%)}
+.pier.p-r{right:3px}
+
+/* ============================================================
+   CLOSING BLOCK ON THE HEDGE
+   Put a photo at public/hedge.jpg and it appears behind this.
+   Until then it stays a soft sage panel.
+   ============================================================ */
+.closing{
+  position:relative;margin:26px -22px -22px;padding:30px 24px 26px;text-align:center;
+  background-color:#DCE3D2;
+  background-image:linear-gradient(180deg,rgba(251,248,242,.86),rgba(251,248,242,.70)),url('/hedge.jpg');
+  background-size:cover;background-position:center;
+  border-top:1px solid var(--gold-soft);
+}
+.closing span{
+  position:relative;font-family:var(--formal);font-size:13.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--fuchsia-deep);display:block;line-height:1.7;
+}
+.dstrip-link{position:relative;margin:0 0 20px}
+.maps-link{color:var(--fuchsia-deep);border-bottom-color:var(--gold)}
+
+.motif-doves{width:230px;height:92px;max-width:86%}
+.motif-candles{
+  position:relative;width:250px;max-width:88%;height:52px;
+  color:var(--fuchsia-deep);opacity:.75;margin-top:18px;display:inline-block;
+}
+
+.hero-photo.deco{height:118px}
+
+@media(min-width:620px){
+  .dcell{padding:34px 26px 30px}
+  .dcell .v.plain{max-width:24ch}
+}
+
+
+/* ============================================================
+   CLOSING BLOCK — graded for the hedge photo
+   The photo runs dark on the left and pale on the right, so the
+   scrim is weighted to match: heavier over the foliage, lighter
+   over the sky. Keeps centred text legible right across.
+   ============================================================ */
+.closing{
+  background-color:#DCE3D2;
+  background-image:
+    linear-gradient(100deg,
+      rgba(251,248,242,.50) 0%,
+      rgba(251,248,242,.34) 42%,
+      rgba(251,248,242,.10) 74%,
+      rgba(251,248,242,0)   100%),
+    linear-gradient(180deg,
+      rgba(251,248,242,.74) 0%,
+      rgba(251,248,242,.66) 55%,
+      rgba(251,248,242,.78) 100%),
+    url('/hedge.jpg');
+  background-size:cover, cover, cover;
+  background-position:center, center, center bottom;
+  background-repeat:no-repeat;
+}
+.closing span{
+  color:#3A452F;
+  text-shadow:0 1px 0 rgba(251,248,242,.55);
+}
+.closing .maps-link{
+  color:#3A452F;
+  border-bottom-color:rgba(58,69,47,.45);
+  text-shadow:0 1px 0 rgba(251,248,242,.55);
+}
+.motif-candles{color:#3A452F;opacity:.8}

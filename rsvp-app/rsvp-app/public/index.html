@@ -4,6 +4,23 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mohamad &amp; Marya — RSVP</title>
+
+<!-- ============================================================
+     INVITATION CARD  ← put your card image URL on the og:image line.
+     WhatsApp reads this raw HTML (it never runs JavaScript), which is
+     why the address is written here rather than pulled from Settings.
+     Needs to be a direct, public image link ending in .jpg or .png —
+     an Imgur / Cloudinary / your-own-host link. Google Drive will not
+     work. Ideally 1200×630 or larger.
+     ============================================================ -->
+<meta property="og:image" content="https://mohamadandmarya.vercel.app/invitation.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:title" content="Mohamad &amp; Marya" />
+<meta property="og:description" content="You're invited. Tap to let us know if you can join us." />
+<meta property="og:url" content="https://mohamadandmarya.vercel.app" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Pinyon+Script&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -218,7 +235,7 @@
 const getGuests = () => sb('guests?select=*&order=created_at.asc');
 const getGuestByToken = t => sb(`guests?token=eq.${encodeURIComponent(t)}&select=*`).then(r => r && r[0]);
 
-const PUBLIC_DOMAIN = 'https://rsvp-app-theta-puce.vercel.app';
+const PUBLIC_DOMAIN = 'https://mohamadandmarya.vercel.app';
 /* ============================================================
    STATE + ROUTING
    ============================================================ */
@@ -495,7 +512,8 @@ function renderGuests(){
       <td>
         <div class="g-name">${escapeHtml(g.name)}</div>
         <div class="copy-mobile" style="gap:8px;flex-wrap:wrap">
-          <button class="btn btn-wa btn-sm" onclick="sendWhatsApp('${g.id}')">Send on WhatsApp</button>
+          <button class="btn btn-wa btn-sm" onclick="shareWithCard('${g.id}')">Send with card</button>
+          <button class="btn btn-ghost btn-sm" onclick="sendWhatsApp('${g.id}')">Link only</button>
           <button class="btn btn-ghost btn-sm" onclick="copyLink('${link}')">⎘ Copy link</button>
         </div>
       </td>
@@ -509,7 +527,7 @@ function renderGuests(){
       <td class="col-seat">${circleSelect(g)}</td>
       <td class="col-seat">${tableSelect(g)}</td>
       <td class="col-gift">${giftCell(g)}</td>
-      <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn wa" title="Send on WhatsApp" onclick="sendWhatsApp('${g.id}')">➤</button><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
+      <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn wa" title="Send the card + link on WhatsApp" onclick="shareWithCard('${g.id}')">➤</button><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
       <td><button class="icon-btn del-btn" title="Remove guest" onclick="removeGuest('${g.id}','${escapeHtml(g.name)}')">🗑</button></td>
     </tr>`;
   });
@@ -568,16 +586,60 @@ function waNumber(raw){
   return p;
 }
 
+/* The card image, read from the og:image tag in the head — one source of truth. */
+function cardImageUrl(){
+  const m = document.querySelector('meta[property="og:image"]');
+  return m ? m.getAttribute('content') : '';
+}
+
+function inviteMessage(g){
+  const link  = `${PUBLIC_DOMAIN}/?id=${g.token}`;
+  const names = (CONFIG && CONFIG.event_name) || 'We';
+  const occ   = (CONFIG && CONFIG.occasion) || 'wedding celebration';
+  return `Hi ${firstName(g.name)}!\n\n${names} would love to have you at their ${occ}.\n\n`
+       + `For confirmation please visit the link:\n${link}`;
+}
+
+/* Text only. WhatsApp shows the card as a big preview because of the
+   og:image tag on the link — no attachment needed. */
 function sendWhatsApp(id){
   const g = GUESTS.find(x => x.id === id);
   if (!g) return;
-  const link = `${PUBLIC_DOMAIN}/?id=${g.token}`;
-  const names = (CONFIG && CONFIG.event_name) || 'We';
-  const occ = (CONFIG && CONFIG.occasion) || 'engagement celebration';
-  const msg = `Hi ${firstName(g.name)}! ${names} would love to have you at their ${occ} 💗\n\nPlease let us know if you can join us here:\n${link}`;
-  const num = waNumber(g.phone);
+  const num  = waNumber(g.phone);
   const base = num ? `https://wa.me/${num}` : 'https://wa.me/';   // no number → WhatsApp lets you pick the contact
-  window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+  window.open(`${base}?text=${encodeURIComponent(inviteMessage(g))}`, '_blank');
+}
+
+/* The real attachment. Hands the image file plus the message to the phone's
+   share sheet, so WhatsApp receives an actual photo. Mobile only — there is
+   no way to attach a file through a wa.me link, so desktop falls back to
+   the link preview above. */
+async function shareWithCard(id){
+  const g = GUESTS.find(x => x.id === id);
+  if (!g) return;
+  const msg = inviteMessage(g);
+  const url = cardImageUrl();
+
+  if (navigator.share && url){
+    try {
+      const res  = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('image ' + res.status);
+      const blob = await res.blob();
+      const ext  = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+      const file = new File([blob], `invitation-${firstName(g.name).toLowerCase()}.${ext}`, { type: blob.type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })){
+        await navigator.share({ files: [file], text: msg });
+        return;
+      }
+      throw new Error('files not shareable here');
+    } catch(e){
+      console.error(e);
+      toast('Card could not be attached — sending the link instead.');
+    }
+  } else if (!navigator.share){
+    toast('Attaching only works on a phone — sending the link instead.');
+  }
+  sendWhatsApp(id);
 }
 
 /* ============================================================

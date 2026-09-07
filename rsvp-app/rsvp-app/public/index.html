@@ -6,7 +6,7 @@
 <title>Mohamad &amp; Marya — RSVP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Pinyon+Script&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="shared/app.css" />
 </head>
 <body>
@@ -23,12 +23,14 @@
     <div class="card">
       <div class="hero">
         <p class="eyebrow">You're invited to</p>
-        <h1 class="names"><span id="g-name1">mohamad</span><span class="amp">&amp;</span><span id="g-name2">marya</span><span class="poss">&rsquo;s</span></h1>
+        <h1 class="names"><span id="g-name1">Mohamad</span><span class="amp">and</span><span id="g-name2">Marya</span></h1>
         <p class="occasion" id="g-occasion">engagement celebration</p>
         <p class="meta" id="g-meta">Cairo</p>
-        <svg class="wave" viewBox="0 0 480 28" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0,14 C40,28 80,0 120,14 C160,28 200,0 240,14 C280,28 320,0 360,14 C400,28 440,0 480,14 L480,28 L0,28 Z" fill="#ffffff"/>
-        </svg>
+      </div>
+      <div class="hero-photo deco" id="g-photo">
+        <svg viewBox="0 0 120 40" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round">
+          <path d="M10 20h100"/><path d="M60 20c-7-5-14-6-20-4 4 5 12 7 20 4z"/><path d="M60 20c7-5 14-6 20-4-4 5-12 7-20 4z"/>
+        </g></svg>
       </div>
       <div class="body" id="g-body"><!-- filled by JS --></div>
     </div>
@@ -194,7 +196,6 @@
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Address</label><input id="set-address" placeholder="e.g. 1113 Corniche El Nil, Cairo"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Google Maps link (optional)</label><input id="set-map" placeholder="https://maps.google.com/..."/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Time</label><input id="set-time" placeholder="e.g. Reception 7:00 PM"/></div>
-    <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Dress code</label><input id="set-dress" placeholder="e.g. Formal · Black tie"/></div>
     <div class="field"><label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">Photo link (optional)</label><input id="set-image" placeholder="https://...image.jpg"/></div>
 
     <div class="set-divider">WhatsApp sending</div>
@@ -218,8 +219,6 @@ const getGuests = () => sb('guests?select=*&order=created_at.asc');
 const getGuestByToken = t => sb(`guests?token=eq.${encodeURIComponent(t)}&select=*`).then(r => r && r[0]);
 
 const PUBLIC_DOMAIN = 'https://rsvp-app-theta-puce.vercel.app';
-// Dress-code colour story (from the moodboard). Edit these hex values to restyle the swatches.
-const DRESS_PALETTE = ['#D04E46','#EC9660','#E9C454','#96A842','#76844E','#A494C4'];
 /* ============================================================
    STATE + ROUTING
    ============================================================ */
@@ -252,12 +251,20 @@ async function loadGuestView(token){
 
   // names from config event_name "Mohamad & Marya"
   if (CONFIG && CONFIG.event_name && CONFIG.event_name.includes('&')) {
-    const [a,b] = CONFIG.event_name.split('&').map(s => s.trim().toLowerCase());
-    document.getElementById('g-name1').textContent = a || 'mohamad';
-    document.getElementById('g-name2').textContent = b || 'marya';
+    const [a,b] = CONFIG.event_name.split('&').map(s => s.trim());
+    document.getElementById('g-name1').textContent = a || 'Mohamad';
+    document.getElementById('g-name2').textContent = b || 'Marya';
   }
   if (CONFIG && CONFIG.event_date) document.getElementById('g-meta').textContent = CONFIG.event_date;
-  document.getElementById('g-occasion').textContent = (CONFIG && CONFIG.occasion) || 'engagement celebration';
+  document.getElementById('g-occasion').textContent = (CONFIG && CONFIG.occasion) || 'wedding celebration';
+
+  const photo = ((CONFIG && CONFIG.hero_image_url) || '').trim();
+  const band = document.getElementById('g-photo');
+  if (/^https?:\/\//i.test(photo)){
+    band.className = 'hero-photo';
+    band.style.backgroundImage = `url('${escapeAttr(photo)}')`;
+    band.innerHTML = '';
+  }
 
   show('guest');
 
@@ -351,37 +358,50 @@ function renderThanks(guest){
   }
 }
 
+const ICON = {
+  cal:   '<path d="M4 6h16v14H4z"/><path d="M4 10h16"/><path d="M8 3v4M16 3v4"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  pin:   '<path d="M12 21s6.5-6.2 6.5-11a6.5 6.5 0 1 0-13 0C5.5 14.8 12 21 12 21z"/><circle cx="12" cy="10" r="2.4"/>',
+  glass: '<path d="M6 3h5l-1 7a2.5 2.5 0 0 1-5 0z"/><path d="M13 3h5l-1 7a2.5 2.5 0 0 1-5 0z"/><path d="M7.5 12.5V21M15.5 12.5V21"/><path d="M5 21h5M13 21h5"/>'
+};
+const svgIcon = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+const cell = (icon, k, v) =>
+  `<div class="dcell">${svgIcon(icon)}<div class="k">${escapeHtml(k)}</div>${v ? `<div class="v">${escapeHtml(v)}</div>` : ''}</div>`;
+
 function buildDetails(){
   const c = CONFIG || {};
-  const venue = (c.venue || '').trim();
+  const venue   = (c.venue || '').trim();
   const address = (c.venue_address || '').trim();
-  const map = (c.map_url || '').trim();
-  const when = [(c.event_date || '').trim(), (c.event_time || '').trim()].filter(Boolean).join(' · ');
-  const dress = (c.dress_code || '').trim();
-  const img = (c.hero_image_url || '').trim();
+  const map     = (c.map_url || '').trim();
+  const date    = (c.event_date || '').trim();
+  const time    = (c.event_time || '').trim();
   const isUrl = u => /^https?:\/\//i.test(u);
 
-  const imgHtml = isUrl(img)
-    ? `<div class="detail-img" style="background-image:url('${escapeAttr(img)}')"></div>`
-    : `<div class="detail-deco">♡</div>`;
+  const cells = [];
+  if (date)  cells.push(cell(ICON.cal, date, ''));
+  if (time)  cells.push(cell(ICON.clock, 'at', time));
+  if (venue || address) cells.push(cell(ICON.pin, venue || 'Venue', address));
+  cells.push(cell(ICON.glass, 'Dinner', 'to follow'));
 
-  const rows = [];
-  if (venue || address){
-    let v = `<div class="dval">${escapeHtml(venue || 'Venue')}</div>`;
-    if (address) v += `<div class="dsub">${escapeHtml(address)}</div>`;
-    if (isUrl(map)) v += `<a class="maps-link" href="${escapeAttr(map)}" target="_blank" rel="noopener">Open in Maps ↗</a>`;
-    rows.push(`<div class="detail-row"><span class="dicon">📍</span><div><div class="dlabel">Where</div>${v}</div></div>`);
-  }
-  if (when) rows.push(`<div class="detail-row"><span class="dicon">🗓️</span><div><div class="dlabel">When</div><div class="dval">${escapeHtml(when)}</div></div></div>`);
-  if (dress){
-    const sw = DRESS_PALETTE.map(c => `<span class="swatch" style="background:${c}"></span>`).join('');
-    rows.push(`<div class="detail-row"><span class="dicon">👗</span><div><div class="dlabel">Dress code</div><div class="dval">${escapeHtml(dress)}</div><div class="swatches">${sw}</div></div></div>`);
+  if (cells.length < 2){
+    return `<p class="details-soon">Full details are coming soon — we'll share the venue and timing closer to the day.</p>`;
   }
 
-  if (!rows.length){
-    return `${imgHtml}<p class="details-soon">Full details are coming soon — we'll share the venue, timing, and dress code closer to the day. 💗</p>`;
-  }
-  return `${imgHtml}<div class="details"><h4 class="details-title">The details</h4>${rows.join('')}</div>`;
+  const link = isUrl(map)
+    ? `<a class="maps-link" href="${escapeAttr(map)}" target="_blank" rel="noopener">Open in Maps</a>` : '';
+
+  return `<div class="dstrip">${cells.join('')}</div>
+    ${link ? `<div class="dstrip-link">${link}</div>` : ''}
+    <div class="closing">
+      <span>Your presence means the world to us</span>
+      <svg class="sprig" viewBox="0 0 120 26" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round">
+        <path d="M20 13h80"/>
+        <path d="M60 13c-6-4-12-5-17-3.5 3.5 4.5 10.5 6 17 3.5z"/>
+        <path d="M60 13c6-4 12-5 17-3.5C73.5 14 66.5 15.5 60 13z"/>
+        <path d="M48 13c-4-3-8-3.5-11.5-2.5 2.5 3 7 4.2 11.5 2.5z"/>
+        <path d="M72 13c4-3 8-3.5 11.5-2.5C81 13.5 76.5 14.7 72 13z"/>
+      </g></svg>
+    </div>`;
 }
 function editResponse(){
   SELECTED = CURRENT_GUEST.rsvp === false ? 0 : (CURRENT_GUEST.seats_confirmed || null);
@@ -572,7 +592,6 @@ function openSettings(){
   v('set-address', CONFIG.venue_address);
   v('set-map', CONFIG.map_url);
   v('set-time', CONFIG.event_time);
-  v('set-dress', CONFIG.dress_code);
   v('set-image', CONFIG.hero_image_url);
   v('set-cc', CONFIG.country_code);
   document.getElementById('settings-modal').classList.add('show');
@@ -591,7 +610,6 @@ async function saveSettings(){
     venue_address: val('set-address'),
     map_url: val('set-map'),
     event_time: val('set-time'),
-    dress_code: val('set-dress'),
     hero_image_url: val('set-image'),
     country_code: val('set-cc')
   };

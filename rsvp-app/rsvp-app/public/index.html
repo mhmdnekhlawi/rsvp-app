@@ -13,11 +13,11 @@
      an Imgur / Cloudinary / your-own-host link. Google Drive will not
      work. Ideally 1200×630 or larger.
      ============================================================ -->
-<meta property="og:image" content="https://mohamadandmarya.vercel.app/invitation.jpg" />
+<meta property="og:image" content="https://mohamadandmarya.vercel.app/preview.jpg?v=2" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:title" content="Mohamad &amp; Marya" />
-<meta property="og:description" content="You're invited. Tap to let us know if you can join us." />
+<meta property="og:description" content="Tap the seal to open your invitation." />
 <meta property="og:url" content="https://mohamadandmarya.vercel.app" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary_large_image" />
@@ -40,7 +40,7 @@
 
     <div class="inv-stage" id="inv-stage">
       <div class="env" id="env">
-        <img class="env-layer env-open-body" src="/invite/envelope-open.webp" alt="" onerror="invFallback()">
+        <img class="env-layer env-lining" src="/invite/envelope-lining.webp" alt="" onerror="invFallback()">
         <img class="env-layer env-flapup" src="/invite/envelope-flapup.webp" alt="">
         <div class="env-cardclip">
           <div class="env-card" id="env-card">
@@ -52,7 +52,6 @@
             <p class="ec-line" id="ec-venue"></p>
           </div>
         </div>
-        <img class="env-layer env-pocket" src="/invite/envelope-pocket.webp" alt="">
         <img class="env-layer env-closed" src="/invite/envelope-closed.webp" alt="">
         <img class="env-layer env-flap" src="/invite/envelope-flap.webp" alt="">
         <button class="env-seal-hit" id="env-open" aria-label="Open the invitation" onclick="openInvite()"></button>

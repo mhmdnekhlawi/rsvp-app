@@ -928,3 +928,42 @@
        background:url('/invite/paper.webp') center/cover;border:1px solid rgba(179,155,98,.25)}
   #page-guest{padding:0;background:#E9E3D6}
 }
+
+
+/* ============================================================
+   NAMES IN SCRIPT
+   Pinyon Script is already loaded. To try another, swap the
+   family on the two --script lines and change the font link
+   in index.html to match.
+   ============================================================ */
+.hero .names{
+  font-family:var(--script);
+  font-size:clamp(44px,13vw,62px);
+  letter-spacing:.01em;
+  text-transform:none;
+  font-weight:400;
+  line-height:1.08;
+  gap:2px;
+}
+.hero .names .amp{
+  font-family:var(--formal);
+  font-size:13px;letter-spacing:.32em;text-transform:uppercase;
+  margin:2px 0;
+}
+/* the script has long descenders — give them room so nothing clips */
+.hero .names span:not(.amp){padding-bottom:.08em}
+
+/* the little card inside the envelope, kept in step */
+.ec-names{
+  font-family:var(--script);
+  font-size:clamp(24px,8vw,38px);
+  letter-spacing:.01em;
+  text-transform:none;
+  font-weight:400;
+  line-height:1.1;
+}
+.ec-names em{
+  font-family:var(--formal);
+  font-size:.34em;letter-spacing:.3em;text-transform:uppercase;
+  margin:3% 0;
+}

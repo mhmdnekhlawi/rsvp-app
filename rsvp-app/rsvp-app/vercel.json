@@ -4,6 +4,6 @@
     { "source": "/moveplan/", "destination": "/moveplan/index.html" },
     { "source": "/moveplan/layout", "destination": "/moveplan/layout/index.html" },
     { "source": "/moveplan/layout/", "destination": "/moveplan/layout/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!invite/|photos/|shared/|moveplan/|.*\\.(?:jpg|jpeg|png|webp|mp3|css|js|svg|ico)$).*)", "destination": "/index.html" }
   ]
 }

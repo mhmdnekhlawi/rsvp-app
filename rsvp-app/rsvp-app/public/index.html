@@ -36,7 +36,57 @@
 
 <!-- ============ GUEST RSVP ============ -->
 <div id="page-guest" class="page">
-  <div class="guest-wrap">
+  <div class="inv" id="inv">
+
+    <div class="inv-stage" id="inv-stage">
+      <div class="env" id="env">
+        <img class="env-layer" src="/invite/envelope-open.webp" alt="" onerror="invFallback()">
+        <img class="env-layer env-flapup" src="/invite/envelope-flapup.webp" alt="">
+        <div class="env-cardclip">
+          <div class="env-card" id="env-card">
+            <p class="ec-eyebrow">You're invited to the wedding of</p>
+            <h2 class="ec-names"><span id="ec-n1">Mohamad</span><em>and</em><span id="ec-n2">Marya</span></h2>
+            <div class="ec-rule"></div>
+            <p class="ec-line" id="ec-date"></p>
+            <p class="ec-line" id="ec-venue"></p>
+            <p class="ec-dear" id="ec-dear"></p>
+          </div>
+        </div>
+        <img class="env-layer env-pocket" src="/invite/envelope-pocket.webp" alt="">
+        <img class="env-layer env-closed" src="/invite/envelope-closed.webp" alt="">
+        <img class="env-layer env-flap" src="/invite/envelope-flap.webp" alt="">
+        <button class="env-seal-hit" id="env-open" aria-label="Open the invitation" onclick="openInvite()"></button>
+      </div>
+      <p class="inv-hint">Tap the seal to open</p>
+    </div>
+
+    <div class="inv-scene" aria-hidden="false">
+      <img class="it it-corsage" src="/invite/corsage.webp" alt="">
+      <button class="it it-record" id="it-record" onclick="toggleMusic()" aria-label="Play music">
+        <img src="/invite/record.webp" alt=""><span class="lbl" id="music-lbl">Tap for music</span>
+      </button>
+      <button class="it it-details" onclick="openSheet('sheet-details')">
+        <img src="/invite/card-details.webp" alt="">
+        <span class="tx"><span class="it-script">The Details</span><span class="it-caps">tap here</span></span>
+      </button>
+      <div class="it it-tray">
+        <img src="/invite/tray.webp" alt="">
+        <button class="it-rsvp" onclick="openSheet('sheet-rsvp')">
+          <img src="/invite/card-rsvp.webp" alt="">
+          <span class="tx"><span class="it-caps">Kindly</span><span class="it-script">RSVP</span><span class="it-caps">tap here</span></span>
+        </button>
+      </div>
+      <figure class="it it-photo p1"><img src="/photos/1.jpg" alt="" onerror="this.closest('figure').remove()"></figure>
+      <figure class="it it-photo p2"><img src="/photos/2.jpg" alt="" onerror="this.closest('figure').remove()"></figure>
+    </div>
+  </div>
+
+  <audio id="bgm" src="/music.mp3" loop preload="none"></audio>
+
+  <div class="sheet-bg" id="sheet-rsvp" onclick="if(event.target===this)closeSheet('sheet-rsvp')">
+    <div class="sheet">
+      <button class="sheet-x" onclick="closeSheet('sheet-rsvp')" aria-label="Close">&times;</button>
+      <div class="guest-wrap">
     <div class="card">
       <div class="hero">
         <p class="eyebrow">You're invited to</p>
@@ -72,6 +122,15 @@
   </svg>
       </div>
       <div class="body" id="g-body"><!-- filled by JS --></div>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet-bg" id="sheet-details" onclick="if(event.target===this)closeSheet('sheet-details')">
+    <div class="sheet">
+      <button class="sheet-x" onclick="closeSheet('sheet-details')" aria-label="Close">&times;</button>
+      <div class="sheet-body" id="details-body"></div>
     </div>
   </div>
 </div>
@@ -297,6 +356,16 @@ async function loadGuestView(token){
   if (CONFIG && CONFIG.event_date) document.getElementById('g-meta').textContent = CONFIG.event_date;
   document.getElementById('g-occasion').textContent = (CONFIG && CONFIG.occasion) || 'wedding celebration';
 
+  // the card that rises out of the envelope
+  if (CONFIG && CONFIG.event_name && CONFIG.event_name.includes('&')) {
+    const [a,b] = CONFIG.event_name.split('&').map(s => s.trim());
+    document.getElementById('ec-n1').textContent = a || 'Mohamad';
+    document.getElementById('ec-n2').textContent = b || 'Marya';
+  }
+  document.getElementById('ec-date').textContent  = (CONFIG && CONFIG.event_date) || '';
+  document.getElementById('ec-venue').textContent = (CONFIG && CONFIG.venue) || '';
+  document.getElementById('ec-dear').textContent  = guest ? `Dear ${firstName(guest.name)},` : '';
+
   const photo = ((CONFIG && CONFIG.hero_image_url) || '').trim();
   const band = document.getElementById('g-photo');
   if (/^https?:\/\//i.test(photo)){
@@ -370,6 +439,50 @@ async function submitRSVP(){
     btn.disabled = false; btn.textContent = 'Confirm response';
     toast('Something went wrong — please try again.');
   }
+}
+
+/* ============================================================
+   ENVELOPE SEQUENCE
+   ============================================================ */
+let INV_OPENED = false;
+function openInvite(){
+  if (INV_OPENED) return;
+  INV_OPENED = true;
+  const env = document.getElementById('env');
+  const inv = document.getElementById('inv');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  env.classList.add('opening');                                  // flap lifts, closed body fades
+  setTimeout(() => env.classList.add('risen'),  reduce ? 0 : 900);   // card slides up out of the pocket
+  setTimeout(() => inv.classList.add('revealed'), reduce ? 0 : 2000); // stage shrinks, scene appears
+}
+/* If the artwork never loads, skip the theatre and show everything. */
+function invFallback(){
+  const inv = document.getElementById('inv');
+  inv.classList.add('revealed');
+  document.getElementById('env').classList.add('opening','risen');
+  INV_OPENED = true;
+}
+
+function openSheet(id){
+  if (id === 'sheet-details'){
+    const c = CONFIG || {};
+    document.getElementById('details-body').innerHTML =
+      `<h3>The details</h3><p class="sub">${escapeHtml(c.venue || '')}</p>${buildDetails()}`;
+  }
+  document.getElementById(id).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(id){
+  document.getElementById(id).classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+let MUSIC_ON = false;
+function toggleMusic(){
+  const a = document.getElementById('bgm'), b = document.getElementById('it-record'), l = document.getElementById('music-lbl');
+  if (MUSIC_ON){ a.pause(); MUSIC_ON = false; b.classList.remove('on'); l.textContent = 'Tap for music'; return; }
+  a.play().then(() => { MUSIC_ON = true; b.classList.add('on'); l.textContent = 'Playing · tap to pause'; })
+   .catch(() => { l.textContent = 'Add music.mp3 to enable'; });
 }
 
 function renderThanks(guest){

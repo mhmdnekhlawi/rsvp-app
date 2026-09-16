@@ -569,18 +569,18 @@ function renderGuests(){
           <button class="btn btn-ghost btn-sm" onclick="copyLink('${link}')">⎘ Copy link</button>
         </div>
       </td>
-      <td><span class="side-badge ${side}">${side==='bride'?"Bride's":"Groom's"}</span></td>
-      <td><input class="maxsel${(g.rsvp === true && (g.seats_confirmed || 0) > (g.max_seats || 0)) ? ' short' : ''}"
+      <td class="m-side" data-label="Side"><span class="side-badge ${side}">${side==='bride'?"Bride's":"Groom's"}</span></td>
+      <td class="m-max" data-label="Max seats"><input class="maxsel${(g.rsvp === true && (g.seats_confirmed || 0) > (g.max_seats || 0)) ? ' short' : ''}"
             type="number" min="1" max="20" value="${g.max_seats}"
             title="Seats this guest may bring — click to change"
             onchange="setMaxSeats('${g.id}', this.value)"
             onkeydown="if(event.key==='Enter')this.blur()"></td>
-      <td><span class="status ${sclass}"><span class="d"></span>${status}</span></td>
-      <td class="col-seat">${circleSelect(g)}</td>
-      <td class="col-seat">${tableSelect(g)}</td>
-      <td class="col-gift">${giftCell(g)}</td>
+      <td class="m-status" data-label="Reply"><span class="status ${sclass}"><span class="d"></span>${status}</span></td>
+      <td class="col-seat" data-label="Circle">${circleSelect(g)}</td>
+      <td class="col-seat" data-label="Table">${tableSelect(g)}</td>
+      <td class="col-gift" data-label="Gift">${giftCell(g)}</td>
       <td class="col-link"><div class="link-cell"><code>${link}</code><button class="icon-btn wa" title="Send the card + link on WhatsApp" onclick="shareWithCard('${g.id}')">➤</button><button class="icon-btn" title="Copy link" onclick="copyLink('${link}')">⎘</button></div></td>
-      <td><button class="icon-btn del-btn" title="Remove guest" onclick="removeGuest('${g.id}','${escapeHtml(g.name)}')">🗑</button></td>
+      <td class="m-del"><button class="icon-btn del-btn" title="Remove guest" onclick="removeGuest('${g.id}','${escapeHtml(g.name)}')">🗑</button></td>
     </tr>`;
   });
   wrap.innerHTML = `<table>
